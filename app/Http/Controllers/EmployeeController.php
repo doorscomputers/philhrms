@@ -232,12 +232,6 @@ class EmployeeController extends Controller
 
     public function store(Request $request)
     {
-        // Debug logging
-        \Log::info('=== EMPLOYEE STORE METHOD CALLED ===');
-        \Log::info('Request method: '.$request->method());
-        \Log::info('Request data keys: '.implode(', ', array_keys($request->all())));
-        \Log::info('Request has first_name: '.($request->has('first_name') ? 'YES' : 'NO'));
-        \Log::info('Request first_name value: '.$request->get('first_name', 'NOT SET'));
 
         // Comprehensive validation for all fields
         $validated = $request->validate([
@@ -279,6 +273,9 @@ class EmployeeController extends Controller
             'emergency_contact_name' => 'nullable|string|max:255',
             'emergency_contact_phone' => 'nullable|string|max:20',
             'emergency_contact_relationship' => 'nullable|string|max:100',
+
+            // Emergency contacts array (from dynamic form) - temporarily more permissive
+            'emergency_contacts' => 'nullable',
 
             // Address
             'address_street' => 'nullable|string|max:255',
@@ -394,13 +391,44 @@ class EmployeeController extends Controller
 
         // Handle emergency contacts as JSON
         $emergencyContacts = [];
-        if ($validated['emergency_contact_name'] ?? false) {
+
+        // Debug logging
+        \Log::info('Emergency contacts processing:', [
+            'raw_emergency_contacts' => $validated['emergency_contacts'] ?? 'null',
+            'is_array' => is_array($validated['emergency_contacts'] ?? null),
+            'type' => gettype($validated['emergency_contacts'] ?? null),
+        ]);
+
+        // Check if emergency contacts are sent as JSON string (from dynamic form)
+        if (!empty($validated['emergency_contacts'])) {
+            if (is_string($validated['emergency_contacts'])) {
+                // Decode JSON string to array
+                $decodedContacts = json_decode($validated['emergency_contacts'], true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decodedContacts)) {
+                    $emergencyContacts = $decodedContacts;
+                    \Log::info('Emergency contacts decoded from JSON string:', $emergencyContacts);
+                } else {
+                    \Log::error('Failed to decode emergency contacts JSON:', [
+                        'raw' => $validated['emergency_contacts'],
+                        'error' => json_last_error_msg()
+                    ]);
+                }
+            } elseif (is_array($validated['emergency_contacts'])) {
+                // Use array data directly
+                $emergencyContacts = $validated['emergency_contacts'];
+                \Log::info('Emergency contacts received as array:', $emergencyContacts);
+            }
+        } elseif ($validated['emergency_contact_name'] ?? false) {
+            // Fallback to individual fields format
             $emergencyContacts[] = [
                 'name' => $validated['emergency_contact_name'],
                 'phone' => $validated['emergency_contact_phone'] ?? '',
                 'relationship' => $validated['emergency_contact_relationship'] ?? '',
             ];
+            \Log::info('Emergency contacts from individual fields:', $emergencyContacts);
         }
+
+        \Log::info('Final emergency contacts to save:', $emergencyContacts);
         $validated['emergency_contacts'] = $emergencyContacts;
 
         // Set empty arrays for other JSON fields
@@ -431,7 +459,14 @@ class EmployeeController extends Controller
 
         // Handle documents upload
         $documents = [];
+        \Log::info('Documents processing:', [
+            'has_documents_file' => $request->hasFile('documents'),
+            'documents_in_request' => $request->has('documents'),
+            'request_documents' => $request->get('documents'),
+        ]);
+
         if ($request->hasFile('documents')) {
+            \Log::info('Processing uploaded documents files...');
             foreach ($request->file('documents') as $file) {
                 $documentPath = $file->store('employee_documents', 'public');
                 $documents[] = [
@@ -442,7 +477,12 @@ class EmployeeController extends Controller
                     'uploaded_at' => now()->toDateTimeString(),
                 ];
             }
+            \Log::info('Documents processed:', $documents);
+        } else {
+            \Log::info('No documents files found in request');
         }
+
+        \Log::info('Final documents to save:', $documents);
         $validated['documents'] = $documents;
 
         // Remove individual address/contact fields since we've converted them to JSON
@@ -457,7 +497,20 @@ class EmployeeController extends Controller
         }
 
         try {
+            \Log::info('Creating employee with validated data:', [
+                'emergency_contacts' => $validated['emergency_contacts'],
+                'documents' => $validated['documents'],
+                'contact_numbers' => $validated['contact_numbers'],
+            ]);
+
             $employee = Employee::create($validated);
+
+            \Log::info('Employee created successfully:', [
+                'id' => $employee->id,
+                'name' => $employee->first_name . ' ' . $employee->last_name,
+                'emergency_contacts_saved' => $employee->emergency_contacts,
+                'documents_saved' => $employee->documents,
+            ]);
 
             return redirect()->route('spa.employees.index')->with('success', 'Employee created successfully!');
         } catch (\Exception $e) {
@@ -579,6 +632,7 @@ class EmployeeController extends Controller
             }
 
         }
+
 
 
         return Inertia::render('Employee/EmployeeEdit', [
