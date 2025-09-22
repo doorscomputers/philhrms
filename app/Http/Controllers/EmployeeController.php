@@ -54,14 +54,10 @@ class EmployeeController extends Controller
             'jobGrades' => JobGrade::select('id', 'name')->get(),
             'branches' => CompanyBranch::select('id', 'name')->get(),
             'workSchedules' => WorkSchedule::select('id', 'name')->get(),
-            'employmentStatuses' => [
-                ['id' => 'Probationary', 'name' => 'Probationary'],
-                ['id' => 'Regular', 'name' => 'Regular'],
-                ['id' => 'Contractual', 'name' => 'Contractual'],
-                ['id' => 'Project-Based', 'name' => 'Project-Based'],
-                ['id' => 'Consultant', 'name' => 'Consultant'],
-                ['id' => 'Intern', 'name' => 'Intern'],
-            ],
+            'employmentStatuses' => EmploymentStatus::where('is_active', true)
+                ->orderBy('sort_order')
+                ->select('id', 'name', 'code', 'description')
+                ->get(),
             'employees' => Employee::select('id', 'first_name', 'last_name')->where('is_active', true)->get(),
         ]);
     }
@@ -389,7 +385,10 @@ class EmployeeController extends Controller
             'jobGrades' => JobGrade::select('id', 'name')->get(),
             'branches' => CompanyBranch::select('id', 'name')->get(),
             'workSchedules' => WorkSchedule::select('id', 'name')->get(),
-            'employmentStatuses' => EmploymentStatus::select('id', 'name')->get(),
+            'employmentStatuses' => EmploymentStatus::where('is_active', true)
+                ->orderBy('sort_order')
+                ->select('id', 'name', 'code', 'description')
+                ->get(),
             'employees' => Employee::select('id', 'first_name', 'last_name')->where('is_active', true)->get(),
         ]);
     }

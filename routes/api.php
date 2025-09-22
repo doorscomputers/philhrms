@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\JobGradeController;
 use App\Http\Controllers\Api\OfficeController;
 use App\Http\Controllers\Api\PositionController;
 use App\Http\Controllers\Api\WorkScheduleController;
+use App\Http\Controllers\EmploymentTypeController;
 use Illuminate\Support\Facades\Route;
 
 // For demonstration purposes, temporarily remove auth middleware
@@ -35,3 +36,4 @@ Route::apiResource('job-grades', JobGradeController::class);
 Route::apiResource('cost-centers', CostCenterController::class);
 Route::apiResource('work-schedules', WorkScheduleController::class);
 Route::apiResource('employment-statuses', EmploymentStatusController::class);
+Route::apiResource('employment-types', EmploymentTypeController::class);

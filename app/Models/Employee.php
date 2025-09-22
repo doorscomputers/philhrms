@@ -22,7 +22,7 @@ class Employee extends Model
         'department_id', 'position_id', 'job_grade_id', 'cost_center_id', 'branch_id',
         'immediate_supervisor_id', 'hire_date', 'original_hire_date', 'probation_end_date',
         'regularization_date', 'last_promotion_date', 'resignation_date', 'termination_date',
-        'retirement_date', 'employment_status', 'employment_type', 'pay_frequency', 'is_exempt',
+        'retirement_date', 'employment_status_id', 'employment_type', 'pay_frequency', 'is_exempt',
         'basic_salary', 'allowances', 'daily_rate', 'hourly_rate', 'work_schedule_id',
         'is_flexible_time', 'is_field_work', 'tax_status', 'is_minimum_wage', 'tax_shield',
         'vacation_leave_balance', 'sick_leave_balance', 'emergency_leave_balance',
@@ -101,5 +101,10 @@ class Employee extends Model
     public function workSchedule(): BelongsTo
     {
         return $this->belongsTo(WorkSchedule::class);
+    }
+
+    public function employmentStatus(): BelongsTo
+    {
+        return $this->belongsTo(EmploymentStatus::class);
     }
 }

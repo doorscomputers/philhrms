@@ -1,0 +1,3 @@
+NetResize.License.LicenseName = "taos666";
+NetResize.License.LicenseUser = "sales@componentsource.com";
+NetResize.License.LicenseKey = "K8ABKVNXLNGT1GCMYIDQPNZZD";

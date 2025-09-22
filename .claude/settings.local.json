@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan make:migration:*)",
+      "Read(//c/Users/Warenski/.config/herd/bin/**)",
+      "Bash(~/.config/herd/bin/php.bat artisan:*)",
+      "Bash(~/.config/herd/bin/php.bat:*)",
+      "Bash(chmod:*)",
+      "Bash(./populate-migrations.sh:*)",
+      "Bash(php artisan:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

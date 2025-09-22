@@ -36,9 +36,10 @@ class EmploymentStatusController extends Controller
         $employmentStatus = EmploymentStatus::create($validated);
 
         return response()->json([
-            'message' => 'Employment Status created successfully',
-            'employment_status' => $employmentStatus,
-        ], 201);
+            'success' => true,
+            'message' => 'Employment Status created successfully.',
+            'item' => $employmentStatus,
+        ]);
     }
 
     public function show(EmploymentStatus $employmentStatus)

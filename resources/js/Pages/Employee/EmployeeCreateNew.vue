@@ -299,7 +299,7 @@
               <div class="form-group">
                 <label class="form-label">Employment Status</label>
                 <div class="flex gap-2">
-                  <select v-model="form.employment_status" class="form-select flex-1">
+                  <select v-model="form.employment_status_id" class="form-select flex-1">
                     <option value="">Select Status</option>
                     <option v-for="status in employmentStatuses" :key="status.id" :value="status.id">
                       {{ status.name }}
@@ -312,14 +312,17 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Employment Type</label>
-                <select v-model="form.employment_type" class="form-select">
-                  <option value="">Select Type</option>
-                  <option value="Full-time">Full-time</option>
-                  <option value="Part-time">Part-time</option>
-                  <option value="Contract">Contract</option>
-                  <option value="Temporary">Temporary</option>
-                  <option value="Intern">Intern</option>
-                </select>
+                <div class="flex gap-2">
+                  <select v-model="form.employment_type" class="form-select flex-1">
+                    <option value="">Select Type</option>
+                    <option v-for="type in employmentTypes" :key="type.value" :value="type.value">
+                      {{ type.label }}
+                    </option>
+                  </select>
+                  <button type="button" @click="openQuickAddModal('employmentType')" class="quick-add-btn">
+                    <i class="fas fa-plus"></i>
+                  </button>
+                </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Hire Date</label>
@@ -576,7 +579,7 @@
 
 <script setup>
 import { useForm, Link } from '@inertiajs/vue3'
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import AppLayout from '../../Layouts/AppLayout.vue'
 
 // Props
@@ -603,6 +606,16 @@ const taxStatuses = ref([
   { value: 'ME3', label: 'Married with Exemption, 3 Dependents' },
   { value: 'S4', label: 'Single with 4 Dependents' },
   { value: 'ME4', label: 'Married with Exemption, 4 Dependents' }
+])
+
+// Employment Types (loaded dynamically from API)
+const employmentTypes = ref([
+  { value: 'Full-time', label: 'Full-time' },
+  { value: 'Part-time', label: 'Part-time' },
+  { value: 'Contract', label: 'Contract' },
+  { value: 'Temporary', label: 'Temporary' },
+  { value: 'Intern', label: 'Intern' },
+  { value: 'Casual', label: 'Casual' }
 ])
 
 // File handling refs
@@ -663,7 +676,7 @@ const form = useForm({
   job_grade_id: '',
   branch_id: '',
   work_schedule_id: '',
-  employment_status: '',
+  employment_status_id: '',
   employment_type: '',
   hire_date: '',
   supervisor_id: '',
@@ -769,6 +782,7 @@ const showQuickAddModal = (type) => {
     branch: 'Add New Branch',
     workSchedule: 'Add New Work Schedule',
     employmentStatus: 'Add New Employment Status',
+    employmentType: 'Add New Employment Type',
     payFrequency: 'Add New Pay Frequency',
     taxStatus: 'Add New Tax Status'
   }
@@ -826,7 +840,8 @@ const submitQuickAdd = async () => {
       jobGrade: '/spa/job-grades',
       branch: '/spa/company-branches',
       workSchedule: '/spa/work-schedules',
-      employmentStatus: '/spa/employment-statuses'
+      employmentStatus: '/spa/employment-statuses',
+      employmentType: '/api/employment-types'
     }
 
     const route = routes[modalType.value]
@@ -870,7 +885,10 @@ const submitQuickAdd = async () => {
           form.work_schedule_id = result.item.id
         } else if (modalType.value === 'employmentStatus') {
           props.employmentStatuses.push(result.item)
-          form.employment_status = result.item.id
+          form.employment_status_id = result.item.id
+        } else if (modalType.value === 'employmentType') {
+          employmentTypes.value.push(result.item)
+          form.employment_type = result.item.value
         }
 
         closeQuickAddModal()
@@ -1114,7 +1132,7 @@ const autofillForm = () => {
   }
   if (props.employmentStatuses && props.employmentStatuses.length > 0) {
     const randomIndex = Math.floor(Math.random() * props.employmentStatuses.length)
-    form.employment_status = props.employmentStatuses[randomIndex].id
+    form.employment_status_id = props.employmentStatuses[randomIndex].id
   }
   form.employment_type = employmentType
   form.hire_date = hireDate
@@ -1152,4 +1170,18 @@ const autofillForm = () => {
 
   console.log(`Form autofilled with unique random test data! Employee ID: ${form.employee_id}, Email: ${form.email}`)
 }
+
+// Load employment types from API on component mount
+onMounted(async () => {
+  try {
+    const response = await fetch('/api/employment-types')
+    if (response.ok) {
+      const types = await response.json()
+      employmentTypes.value = types
+    }
+  } catch (error) {
+    console.error('Error loading employment types:', error)
+    // Keep default values if API fails
+  }
+})
 </script>
