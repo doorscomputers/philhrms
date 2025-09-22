@@ -27,6 +27,81 @@ class EmployeeController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->paginate(20);
 
+            // Calculate comprehensive HR insights
+            $totalEmployees = Employee::count();
+            $activeEmployees = Employee::whereHas('employmentStatus', function($query) {
+                $query->where('name', 'like', '%active%');
+            })->count();
+
+            // Gender distribution
+            $genderStats = Employee::selectRaw('gender, COUNT(*) as count')
+                ->whereNotNull('gender')
+                ->groupBy('gender')
+                ->get()
+                ->pluck('count', 'gender')
+                ->toArray();
+
+            // Birthdays this month
+            $currentMonth = now()->month;
+            $birthdaysThisMonth = Employee::whereMonth('birth_date', $currentMonth)
+                ->select('id', 'first_name', 'last_name', 'birth_date')
+                ->orderBy('birth_date')
+                ->get();
+
+            // Department distribution
+            $departmentStats = Employee::with('department')
+                ->select('department_id')
+                ->whereNotNull('department_id')
+                ->get()
+                ->groupBy('department.name')
+                ->map(function($employees) {
+                    return $employees->count();
+                })
+                ->sortDesc();
+
+            // Employment type distribution
+            $employmentTypeStats = Employee::selectRaw('employment_type, COUNT(*) as count')
+                ->whereNotNull('employment_type')
+                ->groupBy('employment_type')
+                ->get()
+                ->pluck('count', 'employment_type')
+                ->toArray();
+
+            // Recent hires (last 30 days)
+            $recentHires = Employee::where('hire_date', '>=', now()->subDays(30))
+                ->select('id', 'first_name', 'last_name', 'hire_date', 'department_id')
+                ->with('department:id,name')
+                ->orderBy('hire_date', 'desc')
+                ->get();
+
+            // Upcoming events (next 30 days) - includes all company events
+            $upcomingEvents = \App\Models\CompanyEvent::active()
+                ->upcoming()
+                ->where('event_date', '<=', now()->addDays(30))
+                ->with(['relatedEmployee:id,first_name,last_name'])
+                ->orderBy('event_date')
+                ->orderBy('start_time')
+                ->limit(10)
+                ->get();
+
+            // Age distribution
+            $ageStats = Employee::selectRaw('
+                CASE
+                    WHEN TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) < 25 THEN "Under 25"
+                    WHEN TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) BETWEEN 25 AND 34 THEN "25-34"
+                    WHEN TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) BETWEEN 35 AND 44 THEN "35-44"
+                    WHEN TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) BETWEEN 45 AND 54 THEN "45-54"
+                    WHEN TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) >= 55 THEN "55+"
+                    ELSE "Unknown"
+                END as age_group,
+                COUNT(*) as count
+            ')
+            ->whereNotNull('birth_date')
+            ->groupBy('age_group')
+            ->get()
+            ->pluck('count', 'age_group')
+            ->toArray();
+
             return Inertia::render('Employee/EmployeeList', [
                 'employees' => $employees,
                 'departments' => Department::all(),
@@ -36,6 +111,18 @@ class EmployeeController extends Controller
                     ->select('id', 'name', 'code', 'description')
                     ->get(),
                 'employmentTypes' => $this->getCurrentEmploymentTypes(),
+                'hrInsights' => [
+                    'totalEmployees' => $totalEmployees,
+                    'activeEmployees' => $activeEmployees,
+                    'genderStats' => $genderStats,
+                    'birthdaysThisMonth' => $birthdaysThisMonth,
+                    'departmentStats' => $departmentStats,
+                    'employmentTypeStats' => $employmentTypeStats,
+                    'recentHires' => $recentHires,
+                    'upcomingEvents' => $upcomingEvents,
+                    'ageStats' => $ageStats,
+                    'currentMonth' => now()->format('F'),
+                ]
             ]);
         }
 
@@ -394,8 +481,108 @@ class EmployeeController extends Controller
      */
     public function edit(Employee $employee)
     {
+        // Load employee with relationships
+        $employee->load(['department', 'position', 'jobGrade', 'branch', 'employmentStatus', 'workSchedule']);
+
+        // Transform employee data for the frontend form
+        $employeeData = $employee->toArray();
+
+        // Extract individual fields from JSON arrays for the form
+        $contactNumbers = $employee->contact_numbers ?? [];
+        $emailAddresses = $employee->email_addresses ?? [];
+        $addresses = $employee->addresses ?? [];
+        $emergencyContacts = $employee->emergency_contacts ?? [];
+
+        // Map contact data to individual fields (handle object array structure)
+        $employeeData['phone'] = '';
+        $employeeData['phone_secondary'] = '';
+        if (is_array($contactNumbers)) {
+            foreach ($contactNumbers as $contact) {
+                if (isset($contact['type']) && $contact['type'] === 'primary' && isset($contact['number'])) {
+                    $employeeData['phone'] = $contact['number'];
+                }
+                if (isset($contact['type']) && $contact['type'] === 'secondary' && isset($contact['number'])) {
+                    $employeeData['phone_secondary'] = $contact['number'];
+                }
+            }
+        }
+
+        $employeeData['email'] = '';
+        if (is_array($emailAddresses)) {
+            foreach ($emailAddresses as $email) {
+                if (isset($email['type']) && $email['type'] === 'primary' && isset($email['email'])) {
+                    $employeeData['email'] = $email['email'];
+                }
+            }
+        }
+
+        // Map emergency contact data (uses direct object structure)
+        $employeeData['emergency_contact_name'] = '';
+        $employeeData['emergency_contact_phone'] = '';
+        $employeeData['emergency_contact_relationship'] = '';
+        if (is_array($emergencyContacts) && !empty($emergencyContacts)) {
+            $primaryEmergencyContact = $emergencyContacts[0] ?? [];
+            $employeeData['emergency_contact_name'] = $primaryEmergencyContact['name'] ?? '';
+            $employeeData['emergency_contact_phone'] = $primaryEmergencyContact['phone'] ?? '';
+            $employeeData['emergency_contact_relationship'] = $primaryEmergencyContact['relationship'] ?? '';
+
+        }
+
+        // Map address data to individual fields
+        $employeeData['address_street'] = '';
+        $employeeData['address_barangay'] = '';
+        $employeeData['address_city'] = '';
+        $employeeData['address_province'] = '';
+        $employeeData['address_postal_code'] = '';
+        if (!empty($addresses)) {
+            $primaryAddress = is_array($addresses) ? ($addresses[0] ?? []) : [];
+            $employeeData['address_street'] = $primaryAddress['street'] ?? '';
+            $employeeData['address_barangay'] = $primaryAddress['barangay'] ?? '';
+            $employeeData['address_city'] = $primaryAddress['city'] ?? '';
+            $employeeData['address_province'] = $primaryAddress['province'] ?? '';
+            $employeeData['address_postal_code'] = $primaryAddress['postal_code'] ?? '';
+        }
+
+        // Map employment status relationship to string
+        $employeeData['employment_status'] = $employee->employmentStatus->name ?? '';
+
+        // Map supervisor relationship
+        $employeeData['supervisor_id'] = $employee->immediate_supervisor_id;
+
+        // Ensure date fields are properly formatted for input[type="date"]
+        if ($employee->birth_date) {
+            $employeeData['birth_date'] = $employee->birth_date->format('Y-m-d');
+        }
+        if ($employee->hire_date) {
+            $employeeData['hire_date'] = $employee->hire_date->format('Y-m-d');
+        }
+
+        // Handle photo URL for display
+        if ($employee->photo) {
+            $employeeData['current_photo_url'] = asset('storage/' . $employee->photo);
+        }
+
+        // Handle documents for display
+        $documents = $employee->documents ?? [];
+        $employeeData['current_documents'] = [];
+        if (is_array($documents)) {
+            foreach ($documents as $doc) {
+                if (isset($doc['name']) && isset($doc['path'])) {
+                    $employeeData['current_documents'][] = [
+                        'name' => $doc['name'],
+                        'url' => asset('storage/' . $doc['path']),
+                        'type' => $doc['type'] ?? '',
+                        'size' => $doc['size'] ?? 0,
+                        'uploaded_at' => $doc['uploaded_at'] ?? '',
+                    ];
+                }
+            }
+
+        }
+
+
         return Inertia::render('Employee/EmployeeEdit', [
-            'employee' => $employee,
+            'employee' => $employeeData,
             'departments' => Department::select('id', 'name')->get(),
             'positions' => Position::select('id', 'title')->get(),
             'jobGrades' => JobGrade::select('id', 'name')->get(),
@@ -414,7 +601,7 @@ class EmployeeController extends Controller
      */
     public function update(Request $request, Employee $employee)
     {
-        // Validation rules for Inertia form
+        // Validation rules for comprehensive Inertia form
         $validated = $request->validate([
             // Employee ID & Badge
             'employee_id' => 'nullable|string|max:20',
@@ -425,21 +612,73 @@ class EmployeeController extends Controller
             'first_name' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:255',
             'last_name' => 'required|string|max:255',
+            'suffix' => 'nullable|string|max:10',
+            'maiden_name' => 'nullable|string|max:255',
+            'nickname' => 'nullable|string|max:100',
             'birth_date' => 'nullable|date',
+            'birth_place' => 'nullable|string|max:255',
             'gender' => 'nullable|in:Male,Female,Other',
             'civil_status' => 'nullable|in:Single,Married,Divorced,Widowed',
+            'nationality' => 'nullable|string|max:100',
+            'religion' => 'nullable|string|max:100',
+            'blood_type' => 'nullable|string|max:10',
+            'height' => 'nullable|numeric|min:0|max:300',
+            'weight' => 'nullable|numeric|min:0|max:500',
 
-            // Contact Information (JSON strings)
-            'addresses' => 'nullable|json',
-            'contact_numbers' => 'nullable|json',
-            'email_addresses' => 'nullable|json',
+            // Government IDs
+            'sss_number' => 'nullable|string|max:20',
+            'tin' => 'nullable|string|max:20',
+            'philhealth_number' => 'nullable|string|max:20',
+            'pagibig_number' => 'nullable|string|max:20',
+            'passport_number' => 'nullable|string|max:20',
+            'drivers_license' => 'nullable|string|max:50',
+            'voters_id' => 'nullable|string|max:50',
+
+            // Contact Information
+            'email' => 'nullable|email|max:255',
+            'phone' => 'nullable|string|max:20',
+            'phone_secondary' => 'nullable|string|max:20',
+            'emergency_contact_name' => 'nullable|string|max:255',
+            'emergency_contact_phone' => 'nullable|string|max:20',
+            'emergency_contact_relationship' => 'nullable|string|max:100',
+
+            // Address fields
+            'address_street' => 'nullable|string|max:255',
+            'address_barangay' => 'nullable|string|max:100',
+            'address_city' => 'nullable|string|max:100',
+            'address_province' => 'nullable|string|max:100',
+            'address_postal_code' => 'nullable|string|max:20',
 
             // Employment Information
             'department_id' => 'nullable|exists:departments,id',
             'position_id' => 'nullable|exists:positions,id',
+            'job_grade_id' => 'nullable|exists:job_grades,id',
+            'branch_id' => 'nullable|exists:company_branches,id',
+            'work_schedule_id' => 'nullable|exists:work_schedules,id',
             'employment_status' => 'nullable|string|max:255',
+            'employment_type' => 'nullable|string|max:50',
+            'hire_date' => 'nullable|date',
+            'supervisor_id' => 'nullable|exists:employees,id',
 
-            // Medical Information (comma-separated strings)
+            // Compensation
+            'basic_salary' => 'nullable|numeric|min:0',
+            'daily_rate' => 'nullable|numeric|min:0',
+            'hourly_rate' => 'nullable|numeric|min:0',
+            'pay_frequency' => 'nullable|string|max:50',
+            'tax_status' => 'nullable|string|max:10',
+            'tax_shield' => 'nullable|numeric|min:0',
+            'vacation_leave_balance' => 'nullable|numeric|min:0',
+            'sick_leave_balance' => 'nullable|numeric|min:0',
+            'emergency_leave_balance' => 'nullable|numeric|min:0',
+
+            // Employment Settings
+            'is_active' => 'nullable|boolean',
+            'is_exempt' => 'nullable|boolean',
+            'is_flexible_time' => 'nullable|boolean',
+            'is_field_work' => 'nullable|boolean',
+            'is_minimum_wage' => 'nullable|boolean',
+
+            // Medical Information
             'medical_conditions' => 'nullable|string',
             'allergies' => 'nullable|string',
 
@@ -450,7 +689,11 @@ class EmployeeController extends Controller
 
             // Additional
             'remarks' => 'nullable|string',
-            'is_active' => 'required|boolean',
+
+            // Legacy JSON fields (for backward compatibility)
+            'addresses' => 'nullable|json',
+            'contact_numbers' => 'nullable|json',
+            'email_addresses' => 'nullable|json',
 
             // Document management
             'existing_documents' => 'nullable|json',
@@ -469,6 +712,75 @@ class EmployeeController extends Controller
                     $validated[$field] = [];
                 }
             }
+
+            // Set default boolean values
+            $validated['is_active'] = $validated['is_active'] ?? true;
+            $validated['is_exempt'] = $validated['is_exempt'] ?? false;
+            $validated['is_flexible_time'] = $validated['is_flexible_time'] ?? false;
+            $validated['is_field_work'] = $validated['is_field_work'] ?? false;
+            $validated['is_minimum_wage'] = $validated['is_minimum_wage'] ?? false;
+
+            // Transform individual contact fields back to JSON arrays for storage
+            $contactNumbers = [];
+            if (!empty($validated['phone'])) {
+                $contactNumbers['primary'] = $validated['phone'];
+            }
+            if (!empty($validated['phone_secondary'])) {
+                $contactNumbers['secondary'] = $validated['phone_secondary'];
+            }
+            $validated['contact_numbers'] = $contactNumbers;
+
+            $emailAddresses = [];
+            if (!empty($validated['email'])) {
+                $emailAddresses['primary'] = $validated['email'];
+            }
+            $validated['email_addresses'] = $emailAddresses;
+
+            // Transform emergency contact fields back to JSON array for storage
+            $emergencyContacts = [];
+            if (!empty($validated['emergency_contact_name']) || !empty($validated['emergency_contact_phone'])) {
+                $emergencyContacts[] = [
+                    'name' => $validated['emergency_contact_name'] ?? '',
+                    'phone' => $validated['emergency_contact_phone'] ?? '',
+                    'relationship' => $validated['emergency_contact_relationship'] ?? '',
+                    'type' => 'primary'
+                ];
+            }
+            $validated['emergency_contacts'] = $emergencyContacts;
+
+            // Transform address fields back to JSON array for storage
+            $addresses = [];
+            if (!empty($validated['address_street']) || !empty($validated['address_city'])) {
+                $addresses[] = [
+                    'street' => $validated['address_street'] ?? '',
+                    'barangay' => $validated['address_barangay'] ?? '',
+                    'city' => $validated['address_city'] ?? '',
+                    'province' => $validated['address_province'] ?? '',
+                    'postal_code' => $validated['address_postal_code'] ?? '',
+                    'type' => 'primary'
+                ];
+            }
+            $validated['addresses'] = $addresses;
+
+            // Handle employment status transformation
+            if (!empty($validated['employment_status'])) {
+                $employmentStatus = EmploymentStatus::where('name', $validated['employment_status'])->first();
+                if ($employmentStatus) {
+                    $validated['employment_status_id'] = $employmentStatus->id;
+                }
+            }
+            unset($validated['employment_status']); // Remove the string field
+
+            // Map supervisor_id to immediate_supervisor_id
+            if (isset($validated['supervisor_id'])) {
+                $validated['immediate_supervisor_id'] = $validated['supervisor_id'];
+                unset($validated['supervisor_id']);
+            }
+
+            // Remove individual fields that are now stored in JSON
+            unset($validated['phone'], $validated['phone_secondary'], $validated['email']);
+            unset($validated['emergency_contact_name'], $validated['emergency_contact_phone'], $validated['emergency_contact_relationship']);
+            unset($validated['address_street'], $validated['address_barangay'], $validated['address_city'], $validated['address_province'], $validated['address_postal_code']);
 
             // Handle photo upload
             if ($request->hasFile('photo')) {
@@ -517,7 +829,7 @@ class EmployeeController extends Controller
             $employee->update($validated);
 
             return redirect()
-                ->route('employees.edit', $employee)
+                ->route('spa.employees.edit', $employee)
                 ->with('success', 'Employee updated successfully.');
 
         } catch (\Exception $e) {

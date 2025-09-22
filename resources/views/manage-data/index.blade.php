@@ -79,6 +79,11 @@
                                         <svg class="w-5 h-5 text-{{ $item['color'] }}-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path>
                                         </svg>
+                                    @elseif($item['icon'] === 'calendar-event')
+                                        <svg class="w-5 h-5 text-{{ $item['color'] }}-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 11h6m-6 4h6"></path>
+                                        </svg>
                                     @endif
                                 </div>
                                 <div>
@@ -118,7 +123,16 @@
                                                     <p class="text-xs text-gray-500">{{ $recent->department->name }}</p>
                                                 @endif
                                             </div>
-                                            <span class="text-xs text-gray-400">{{ $recent->created_at->format('M d') }}</span>
+                                            <div class="flex items-center space-x-2">
+                                                @if(isset($item['edit_route']))
+                                                    <a href="{{ route($item['edit_route'], $recent->id) }}" class="text-{{ $item['color'] }}-600 hover:text-{{ $item['color'] }}-800 transition-colors duration-200" title="Edit">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                        </svg>
+                                                    </a>
+                                                @endif
+                                                <span class="text-xs text-gray-400">{{ $recent->created_at->format('M d') }}</span>
+                                            </div>
                                         </div>
                                     @endforeach
                                 </div>

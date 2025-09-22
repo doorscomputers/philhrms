@@ -174,7 +174,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Emergency Contact Name</label>
-                <input v-model="form.emergency_contact_name" type="text" class="form-input">
+                <input v-model="form.emergency_contact_name" type="text" class="form-input" placeholder="Full Name">
               </div>
               <div class="form-group">
                 <label class="form-label">Emergency Contact Phone</label>
@@ -465,11 +465,47 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="form-group">
                 <label class="form-label">Employee Photo</label>
+
+                <!-- Display existing photo if available -->
+                <div v-if="props.employee.current_photo_url" class="mb-4 p-3 bg-gray-50 rounded-lg border">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                      <img :src="props.employee.current_photo_url" alt="Employee Photo" class="w-16 h-16 object-cover rounded-lg border">
+                      <div>
+                        <p class="text-sm font-medium text-gray-900">Current Photo</p>
+                        <p class="text-xs text-gray-500">Click below to replace</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <input @change="handlePhotoUpload" type="file" accept="image/*" class="form-input">
                 <p class="text-sm text-gray-500 mt-1">Accepted formats: JPG, PNG (Max: 5MB)</p>
               </div>
               <div class="form-group">
                 <label class="form-label">Documents</label>
+
+                <!-- Display existing documents if available -->
+                <div v-if="props.employee.current_documents && props.employee.current_documents.length > 0" class="mb-4">
+                  <div class="space-y-2">
+                    <div v-for="doc in props.employee.current_documents" :key="doc.name" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                      <div class="flex items-center space-x-3">
+                        <div class="flex-shrink-0">
+                          <i class="fas fa-file-alt text-gray-400"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <p class="text-sm font-medium text-gray-900 truncate">{{ doc.name }}</p>
+                          <p class="text-xs text-gray-500">{{ formatFileSize(doc.size) }} • {{ formatDate(doc.uploaded_at) }}</p>
+                        </div>
+                      </div>
+                      <a :href="doc.url" target="_blank" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        View
+                      </a>
+                    </div>
+                  </div>
+                  <p class="text-xs text-gray-500 mb-2">Add more documents below:</p>
+                </div>
+
                 <input @change="handleDocumentsUpload" type="file" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="form-input">
                 <p class="text-sm text-gray-500 mt-1">Accepted formats: PDF, DOC, DOCX, JPG, PNG (Max: 10MB each)</p>
               </div>
@@ -882,6 +918,21 @@ const handlePhotoUpload = (event) => {
 
 const handleDocumentsUpload = (event) => {
   form.documents = Array.from(event.target.files)
+}
+
+// Helper functions for displaying existing files
+const formatFileSize = (bytes) => {
+  if (!bytes) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleDateString()
 }
 
 // Quick Add Modal functionality
