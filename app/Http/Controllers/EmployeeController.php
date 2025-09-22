@@ -10,6 +10,7 @@ use App\Models\JobGrade;
 use App\Models\Position;
 use App\Models\WorkSchedule;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -22,7 +23,7 @@ class EmployeeController extends Controller
     {
         // Check if this is a SPA route and render appropriate page
         if (request()->is('spa/*')) {
-            $employees = Employee::with(['department', 'position'])
+            $employees = Employee::with(['department', 'position', 'employmentStatus'])
                 ->orderBy('created_at', 'desc')
                 ->paginate(20);
 
@@ -30,6 +31,11 @@ class EmployeeController extends Controller
                 'employees' => $employees,
                 'departments' => Department::all(),
                 'positions' => Position::all(),
+                'employmentStatuses' => EmploymentStatus::where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->select('id', 'name', 'code', 'description')
+                    ->get(),
+                'employmentTypes' => $this->getCurrentEmploymentTypes(),
             ]);
         }
 
@@ -118,6 +124,16 @@ class EmployeeController extends Controller
 
         try {
             $employee = Employee::create($validated);
+
+            // Check if this is an Inertia request that needs the employee data for document uploads
+            if ($request->hasHeader('X-Inertia')) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Employee created successfully!',
+                    'employee' => $employee,
+                    'redirect' => route('spa.employees.index')
+                ]);
+            }
 
             return redirect()->route('spa.employees.index')->with('success', 'Employee created successfully!');
         } catch (\Exception $e) {
@@ -533,5 +549,31 @@ class EmployeeController extends Controller
                 ->route('spa.employees.index')
                 ->with('error', 'Failed to delete employee. Please try again.');
         }
+    }
+
+    /**
+     * Get current employment types from the database schema
+     */
+    private function getCurrentEmploymentTypes()
+    {
+        // Query the column definition to get ENUM values
+        $result = DB::select("SHOW COLUMNS FROM employees WHERE Field = 'employment_type'")[0];
+        $typeDefinition = $result->Type;
+
+        // Extract ENUM values from the type definition
+        preg_match('/^enum\((.+)\)$/', $typeDefinition, $matches);
+
+        if (!isset($matches[1])) {
+            return [];
+        }
+
+        $enumValues = str_getcsv($matches[1], ',', "'");
+
+        return collect($enumValues)->map(function ($value) {
+            return [
+                'value' => $value,
+                'label' => $value,
+            ];
+        })->toArray();
     }
 }

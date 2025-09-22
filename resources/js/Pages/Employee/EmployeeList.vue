@@ -100,9 +100,9 @@
                 @change="filterEmployees"
               >
                 <option value="">All Status</option>
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-                <option value="Terminated">Terminated</option>
+                <option v-for="status in props.employmentStatuses" :key="status.id" :value="status.name">
+                  {{ status.name }}
+                </option>
               </select>
               <i class="fas fa-chevron-down absolute right-4 top-11 text-gray-400 pointer-events-none"></i>
             </div>
@@ -116,11 +116,9 @@
                 @change="filterEmployees"
               >
                 <option value="">All Types</option>
-                <option value="Full-time">Full-time</option>
-                <option value="Part-time">Part-time</option>
-                <option value="Contract">Contract</option>
-                <option value="Temporary">Temporary</option>
-                <option value="Intern">Intern</option>
+                <option v-for="type in props.employmentTypes" :key="type.value" :value="type.value">
+                  {{ type.label }}
+                </option>
               </select>
               <i class="fas fa-chevron-down absolute right-4 top-11 text-gray-400 pointer-events-none"></i>
             </div>
@@ -207,11 +205,11 @@
                 </td>
                 <td class="px-6 py-5">
                   <span
-                    :class="getStatusClass(employee.status)"
+                    :class="getStatusClass(employee.employment_status?.name)"
                     class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full"
                   >
-                    <div :class="getStatusDotClass(employee.status)" class="w-1.5 h-1.5 rounded-full mr-2"></div>
-                    {{ employee.status || 'Active' }}
+                    <div :class="getStatusDotClass(employee.employment_status?.name)" class="w-1.5 h-1.5 rounded-full mr-2"></div>
+                    {{ employee.employment_status?.name || 'Active Employee' }}
                   </span>
                 </td>
                 <td class="px-6 py-5 text-sm text-gray-600">
@@ -325,7 +323,9 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 const props = defineProps({
   employees: Object,
   departments: Array,
-  positions: Array
+  positions: Array,
+  employmentStatuses: Array,
+  employmentTypes: Array
 })
 
 const showManagement = ref(false)
@@ -358,7 +358,7 @@ const filteredEmployees = computed(() => {
 
   // Apply status filter
   if (filters.value.status) {
-    filtered = filtered.filter(emp => emp.status === filters.value.status)
+    filtered = filtered.filter(emp => emp.employment_status?.name === filters.value.status)
   }
 
   // Apply employment type filter
@@ -371,7 +371,7 @@ const filteredEmployees = computed(() => {
 
 const activeEmployees = computed(() => {
   if (!props.employees?.data) return 0
-  return props.employees.data.filter(emp => !emp.status || emp.status === 'Active').length
+  return props.employees.data.filter(emp => !emp.employment_status?.name || emp.employment_status?.name === 'Active Employee').length
 })
 const deleteEmployee = async (employee) => {
   console.log('Employee object:', employee)
@@ -403,28 +403,36 @@ const getInitials = (firstName, lastName) => {
 }
 
 const getStatusClass = (status) => {
-  switch (status) {
-    case 'Active':
-      return 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-    case 'Inactive':
-      return 'bg-amber-100 text-amber-700 border border-amber-200'
-    case 'Terminated':
-      return 'bg-red-100 text-red-700 border border-red-200'
-    default:
-      return 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+  if (!status) return 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+
+  const lowerStatus = status.toLowerCase()
+  if (lowerStatus.includes('active') || lowerStatus.includes('employed')) {
+    return 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+  } else if (lowerStatus.includes('inactive') || lowerStatus.includes('suspended')) {
+    return 'bg-amber-100 text-amber-700 border border-amber-200'
+  } else if (lowerStatus.includes('terminated') || lowerStatus.includes('resigned')) {
+    return 'bg-red-100 text-red-700 border border-red-200'
+  } else if (lowerStatus.includes('elected') || lowerStatus.includes('appointed')) {
+    return 'bg-blue-100 text-blue-700 border border-blue-200'
+  } else {
+    return 'bg-gray-100 text-gray-700 border border-gray-200'
   }
 }
 
 const getStatusDotClass = (status) => {
-  switch (status) {
-    case 'Active':
-      return 'bg-emerald-500'
-    case 'Inactive':
-      return 'bg-amber-500'
-    case 'Terminated':
-      return 'bg-red-500'
-    default:
-      return 'bg-emerald-500'
+  if (!status) return 'bg-emerald-500'
+
+  const lowerStatus = status.toLowerCase()
+  if (lowerStatus.includes('active') || lowerStatus.includes('employed')) {
+    return 'bg-emerald-500'
+  } else if (lowerStatus.includes('inactive') || lowerStatus.includes('suspended')) {
+    return 'bg-amber-500'
+  } else if (lowerStatus.includes('terminated') || lowerStatus.includes('resigned')) {
+    return 'bg-red-500'
+  } else if (lowerStatus.includes('elected') || lowerStatus.includes('appointed')) {
+    return 'bg-blue-500'
+  } else {
+    return 'bg-gray-500'
   }
 }
 

@@ -178,17 +178,55 @@
                 <label class="form-label">Secondary Phone</label>
                 <input v-model="form.phone_secondary" type="text" class="form-input" @input="formatPhoneNumber($event, 'phone_secondary')" placeholder="0917-123-4567" maxlength="13">
               </div>
-              <div class="form-group">
-                <label class="form-label">Emergency Contact Name</label>
-                <input v-model="form.emergency_contact_name" type="text" class="form-input">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Emergency Contact Phone</label>
-                <input v-model="form.emergency_contact_phone" type="text" class="form-input" @input="formatPhoneNumber($event, 'emergency_contact_phone')" placeholder="0917-123-4567" maxlength="13">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Emergency Contact Relationship</label>
-                <input v-model="form.emergency_contact_relationship" type="text" class="form-input" placeholder="Spouse, Parent, Sibling">
+              <!-- Emergency Contacts Management -->
+              <div class="col-span-full">
+                <div class="flex justify-between items-center mb-4">
+                  <h3 class="text-lg font-medium text-gray-800">Emergency Contacts</h3>
+                  <button type="button" @click="showEmergencyContactModal = true"
+                          class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                    <i class="fas fa-plus"></i>
+                    Add Emergency Contact
+                  </button>
+                </div>
+
+                <!-- Emergency Contacts List -->
+                <div v-if="emergencyContacts.length > 0" class="space-y-3">
+                  <div v-for="(contact, index) in emergencyContacts" :key="index"
+                       class="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50">
+                    <div class="flex items-center space-x-4">
+                      <div class="flex-shrink-0">
+                        <i class="fas fa-user-shield text-green-600 text-xl"></i>
+                      </div>
+                      <div>
+                        <h4 class="font-medium text-gray-900">{{ contact.name }}</h4>
+                        <div class="text-sm text-gray-600">
+                          <span class="inline-block bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs mr-2">
+                            {{ contact.relationship }}
+                          </span>
+                          <span>{{ contact.phone }}</span>
+                          <span v-if="contact.email" class="ml-2">• {{ contact.email }}</span>
+                        </div>
+                        <p v-if="contact.address" class="text-sm text-gray-500 mt-1">{{ contact.address }}</p>
+                      </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <button type="button" @click="editEmergencyContact(index)"
+                              class="text-blue-600 hover:text-blue-800 p-2">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button type="button" @click="removeEmergencyContact(index)"
+                              class="text-red-600 hover:text-red-800 p-2">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Empty State -->
+                <div v-else class="text-center py-8 text-gray-500">
+                  <i class="fas fa-user-shield text-4xl mb-3"></i>
+                  <p>No emergency contacts added yet. Click "Add Emergency Contact" to get started.</p>
+                </div>
               </div>
             </div>
 
@@ -471,25 +509,68 @@
             <h2 class="text-xl font-semibold mb-4 text-gray-900 flex items-center">
               <i class="fas fa-file-upload mr-3 text-orange-600"></i>Documents & Photo
             </h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <!-- Employee Photo -->
+            <div class="mb-6">
+              <h3 class="text-lg font-medium mb-3 text-gray-800">Employee Photo</h3>
               <div class="form-group">
-                <label class="form-label">Employee Photo</label>
+                <label class="form-label">Upload Photo</label>
                 <input @change="handlePhotoUpload" type="file" accept="image/*" class="form-input">
                 <p class="text-sm text-gray-500 mt-1">Accepted formats: JPG, PNG (Max: 5MB)</p>
                 <div v-if="photoPreview" class="mt-2">
                   <img :src="photoPreview" alt="Photo Preview" class="w-32 h-32 object-cover rounded border">
                 </div>
               </div>
-              <div class="form-group">
-                <label class="form-label">Documents</label>
-                <input @change="handleDocumentsUpload" type="file" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="form-input">
-                <p class="text-sm text-gray-500 mt-1">Accepted formats: PDF, DOC, DOCX, JPG, PNG (Max: 10MB each)</p>
-                <div v-if="documentsInfo.length > 0" class="mt-2">
-                  <p class="text-sm text-gray-600">{{ documentsInfo.length }} document(s) selected</p>
-                  <ul class="text-xs text-gray-500">
-                    <li v-for="(doc, index) in documentsInfo" :key="index">{{ doc.name }}</li>
-                  </ul>
+            </div>
+
+            <!-- Document Management -->
+            <div>
+              <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium text-gray-800">Employee Documents</h3>
+                <button type="button" @click="showDocumentModal = true"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                  <i class="fas fa-plus"></i>
+                  Add Document
+                </button>
+              </div>
+
+              <!-- Document List -->
+              <div v-if="documentList.length > 0" class="space-y-3">
+                <div v-for="(doc, index) in documentList" :key="index"
+                     class="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <div class="flex items-center space-x-4">
+                    <div class="flex-shrink-0">
+                      <i class="fas fa-file-alt text-blue-600 text-xl"></i>
+                    </div>
+                    <div>
+                      <h4 class="font-medium text-gray-900">{{ doc.document_name }}</h4>
+                      <div class="text-sm text-gray-600">
+                        <span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs mr-2">
+                          {{ getDocumentTypeLabel(doc.document_type) }}
+                        </span>
+                        <span>{{ formatFileSize(doc.file_size) }}</span>
+                        <span v-if="doc.expiry_date" class="ml-2">• Expires: {{ formatDate(doc.expiry_date) }}</span>
+                      </div>
+                      <p v-if="doc.notes" class="text-sm text-gray-500 mt-1">{{ doc.notes }}</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <button type="button" @click="editDocument(index)"
+                            class="text-blue-600 hover:text-blue-800 p-2">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button type="button" @click="removeDocument(index)"
+                            class="text-red-600 hover:text-red-800 p-2">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
                 </div>
+              </div>
+
+              <!-- Empty State -->
+              <div v-else class="text-center py-8 text-gray-500">
+                <i class="fas fa-folder-open text-4xl mb-3"></i>
+                <p>No documents added yet. Click "Add Document" to get started.</p>
               </div>
             </div>
           </div>
@@ -574,6 +655,146 @@
         </div>
       </div>
     </div>
+
+    <!-- Document Upload Modal -->
+    <div v-if="showDocumentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" @click="closeDocumentModal">
+      <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white" @click.stop>
+        <div class="mt-3">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-medium text-gray-900">{{ editingDocumentIndex !== null ? 'Edit Document' : 'Add Document' }}</h3>
+            <button @click="closeDocumentModal" class="text-gray-400 hover:text-gray-600">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+
+          <form @submit.prevent="submitDocument" class="space-y-4">
+            <!-- Document Type -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Document Type *</label>
+              <select v-model="documentForm.document_type" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Select Document Type</option>
+                <option v-for="(label, value) in documentTypes" :key="value" :value="value">{{ label }}</option>
+              </select>
+            </div>
+
+            <!-- Document Name -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Document Name *</label>
+              <input v-model="documentForm.document_name" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter document name">
+            </div>
+
+            <!-- File Upload (only for new documents) -->
+            <div v-if="editingDocumentIndex === null">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Upload File *</label>
+              <input @change="handleDocumentFileSelect" type="file" required accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <p class="text-sm text-gray-500 mt-1">Max 10MB. Formats: PDF, DOC, DOCX, JPG, PNG</p>
+            </div>
+
+            <!-- Expiry Date -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Expiry Date (Optional)</label>
+              <input v-model="documentForm.expiry_date" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <!-- Notes -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+              <textarea v-model="documentForm.notes" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3" placeholder="Additional notes about this document"></textarea>
+            </div>
+
+            <!-- Required Document Checkbox -->
+            <div class="flex items-center">
+              <input v-model="documentForm.is_required" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+              <label class="ml-2 block text-sm text-gray-700">This is a required document</label>
+            </div>
+
+            <!-- Modal Actions -->
+            <div class="flex items-center justify-end space-x-3 pt-4">
+              <button type="button" @click="closeDocumentModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md">
+                Cancel
+              </button>
+              <button type="submit" :disabled="documentForm.processing" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md">
+                <span v-if="documentForm.processing">{{ editingDocumentIndex !== null ? 'Updating...' : 'Adding...' }}</span>
+                <span v-else>{{ editingDocumentIndex !== null ? 'Update Document' : 'Add Document' }}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Emergency Contact Modal -->
+    <div v-if="showEmergencyContactModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" @click="closeEmergencyContactModal">
+      <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white" @click.stop>
+        <div class="mt-3">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-medium text-gray-900">{{ editingContactIndex !== null ? 'Edit Emergency Contact' : 'Add Emergency Contact' }}</h3>
+            <button @click="closeEmergencyContactModal" class="text-gray-400 hover:text-gray-600">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+
+          <form @submit.prevent="submitEmergencyContact" class="space-y-4">
+            <!-- Contact Name -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+              <input v-model="emergencyContactForm.name" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Enter full name">
+            </div>
+
+            <!-- Relationship -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Relationship *</label>
+              <select v-model="emergencyContactForm.relationship" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                <option value="">Select Relationship</option>
+                <option value="Spouse">Spouse</option>
+                <option value="Parent">Parent</option>
+                <option value="Child">Child</option>
+                <option value="Sibling">Sibling</option>
+                <option value="Guardian">Guardian</option>
+                <option value="Friend">Friend</option>
+                <option value="Relative">Relative</option>
+                <option value="Colleague">Colleague</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <!-- Phone Number -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
+              <input v-model="emergencyContactForm.phone" type="tel" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="0917-123-4567">
+            </div>
+
+            <!-- Email (Optional) -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Email (Optional)</label>
+              <input v-model="emergencyContactForm.email" type="email" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="email@example.com">
+            </div>
+
+            <!-- Address (Optional) -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Address (Optional)</label>
+              <textarea v-model="emergencyContactForm.address" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" rows="2" placeholder="Complete address"></textarea>
+            </div>
+
+            <!-- Primary Contact Checkbox -->
+            <div class="flex items-center">
+              <input v-model="emergencyContactForm.is_primary" type="checkbox" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+              <label class="ml-2 block text-sm text-gray-700">Primary emergency contact</label>
+            </div>
+
+            <!-- Modal Actions -->
+            <div class="flex items-center justify-end space-x-3 pt-4">
+              <button type="button" @click="closeEmergencyContactModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md">
+                Cancel
+              </button>
+              <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md">
+                {{ editingContactIndex !== null ? 'Update Contact' : 'Add Contact' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </AppLayout>
 </template>
 
@@ -609,18 +830,39 @@ const taxStatuses = ref([
 ])
 
 // Employment Types (loaded dynamically from API)
-const employmentTypes = ref([
-  { value: 'Full-time', label: 'Full-time' },
-  { value: 'Part-time', label: 'Part-time' },
-  { value: 'Contract', label: 'Contract' },
-  { value: 'Temporary', label: 'Temporary' },
-  { value: 'Intern', label: 'Intern' },
-  { value: 'Casual', label: 'Casual' }
-])
+const employmentTypes = ref([])
 
 // File handling refs
 const photoPreview = ref(null)
 const documentsInfo = ref([])
+
+// Document management
+const showDocumentModal = ref(false)
+const editingDocumentIndex = ref(null)
+const documentList = ref([])
+const documentTypes = ref({})
+const documentForm = useForm({
+  document_type: '',
+  document_name: '',
+  file: null,
+  expiry_date: '',
+  notes: '',
+  is_required: false,
+  processing: false
+})
+
+// Emergency contacts management
+const showEmergencyContactModal = ref(false)
+const editingContactIndex = ref(null)
+const emergencyContacts = ref([])
+const emergencyContactForm = ref({
+  name: '',
+  relationship: '',
+  phone: '',
+  email: '',
+  address: '',
+  is_primary: false
+})
 
 // Form with all comprehensive fields - using working pattern
 const form = useForm({
@@ -659,9 +901,7 @@ const form = useForm({
   email: '',
   phone: '',
   phone_secondary: '',
-  emergency_contact_name: '',
-  emergency_contact_phone: '',
-  emergency_contact_relationship: '',
+  emergency_contacts: [],
 
   // Address
   address_street: '',
@@ -712,7 +952,7 @@ const form = useForm({
 })
 
 // Submit form using the PROVEN WORKING approach - exactly like EmployeeTestMinimal.vue
-const submitForm = () => {
+const submitForm = async () => {
   // Validate required fields
   if (!form.first_name || !form.last_name) {
     alert('Please fill in all required fields: First Name and Last Name');
@@ -721,23 +961,150 @@ const submitForm = () => {
 
   console.log('Submitting comprehensive employee form...', form.data());
 
-  // Submit using Inertia with proper error handling - EXACT SAME PATTERN as working minimal form
-  form.post('/spa/employees', {
-    onBefore: () => {
-      console.log('Form submission started...');
-    },
-    onSuccess: () => {
-      alert('Employee created successfully!');
-      window.location.href = '/spa/employees';
-    },
-    onError: (errors) => {
-      console.error('Validation errors:', errors);
-      alert('Please check the form for errors: ' + JSON.stringify(errors));
-    },
-    onFinish: () => {
-      console.log('Form submission completed');
+  // If there are documents to upload, use a different approach
+  if (documentList.value.length > 0) {
+    try {
+      form.processing = true;
+
+      // Submit employee data first using fetch to get the employee ID
+      const formData = new FormData();
+
+      // Add all form fields to FormData
+      Object.keys(form.data()).forEach(key => {
+        const value = form.data()[key];
+        if (value !== null && value !== undefined) {
+          if (typeof value === 'boolean') {
+            // Laravel expects 1/0 for boolean validation when using FormData
+            formData.append(key, value ? '1' : '0');
+          } else if (typeof value === 'object' && !(value instanceof File)) {
+            formData.append(key, JSON.stringify(value));
+          } else if (value !== '') {
+            formData.append(key, value);
+          }
+        }
+      });
+
+      // Ensure required boolean fields are always present with proper values
+      const requiredBooleanFields = ['is_active', 'is_exempt', 'is_flexible_time', 'is_field_work', 'is_minimum_wage'];
+      requiredBooleanFields.forEach(field => {
+        if (!formData.has(field)) {
+          const defaultValue = field === 'is_active' ? '1' : '0';
+          formData.append(field, defaultValue);
+        }
+      });
+
+      // Debug: Log what we're sending
+      console.log('FormData being sent:');
+      for (let pair of formData.entries()) {
+        console.log(pair[0] + ': ' + pair[1]);
+      }
+
+      const response = await fetch('/spa/employees', {
+        method: 'POST',
+        headers: {
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-Inertia': 'true',
+          'Accept': 'application/json'
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Employee created successfully, uploading documents...', result);
+
+        if (result.success && result.employee) {
+          // Upload documents
+          await uploadEmployeeDocuments(result.employee.id);
+        } else {
+          alert('Employee created successfully!');
+          window.location.href = '/spa/employees';
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('Employee creation failed:', errorData);
+        alert('Failed to create employee: ' + (errorData.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error creating employee:', error);
+      alert('Error creating employee: ' + error.message);
+    } finally {
+      form.processing = false;
     }
-  });
+  } else {
+    // No documents, use regular Inertia submission
+    form.post('/spa/employees', {
+      onBefore: () => {
+        console.log('Form submission started...');
+      },
+      onSuccess: () => {
+        alert('Employee created successfully!');
+        window.location.href = '/spa/employees';
+      },
+      onError: (errors) => {
+        console.error('Validation errors:', errors);
+        alert('Please check the form for errors: ' + JSON.stringify(errors));
+      },
+      onFinish: () => {
+        console.log('Form submission completed');
+      }
+    });
+  }
+}
+
+// Upload documents after employee creation
+const uploadEmployeeDocuments = async (employeeId) => {
+  if (!employeeId) {
+    console.error('No employee ID provided for document upload');
+    alert('Employee created but documents could not be uploaded - missing employee ID');
+    window.location.href = '/spa/employees';
+    return;
+  }
+
+  let uploadedCount = 0;
+  let failedCount = 0;
+
+  for (const doc of documentList.value) {
+    try {
+      const formData = new FormData();
+      formData.append('employee_id', employeeId);
+      formData.append('document_type', doc.document_type);
+      formData.append('document_name', doc.document_name);
+      formData.append('file', doc.file);
+      if (doc.expiry_date) formData.append('expiry_date', doc.expiry_date);
+      if (doc.notes) formData.append('notes', doc.notes);
+      formData.append('is_required', doc.is_required);
+
+      const response = await fetch('/api/employee-documents', {
+        method: 'POST',
+        headers: {
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        uploadedCount++;
+      } else {
+        failedCount++;
+        console.error('Failed to upload document:', doc.document_name);
+      }
+    } catch (error) {
+      failedCount++;
+      console.error('Error uploading document:', doc.document_name, error);
+    }
+  }
+
+  // Show results and redirect
+  if (failedCount === 0) {
+    alert(`Employee created successfully! ${uploadedCount} document(s) uploaded.`);
+  } else {
+    alert(`Employee created successfully! ${uploadedCount} document(s) uploaded, ${failedCount} failed.`);
+  }
+
+  window.location.href = '/spa/employees';
 }
 
 // Handle file uploads
@@ -1094,9 +1461,17 @@ const autofillForm = () => {
   form.email = `${firstName.toLowerCase()}.${lastName.toLowerCase().replace(' ', '')}${randomNum}@${randomChoice(emailDomains)}`
   form.phone = `09${Math.floor(Math.random() * 9) + 1}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 99999999).toString().padStart(7, '0')}`
   form.phone_secondary = `09${Math.floor(Math.random() * 9) + 1}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 99999999).toString().padStart(7, '0')}`
-  form.emergency_contact_name = `${randomChoice(firstNames)} ${randomChoice(lastNames)}`
-  form.emergency_contact_phone = `09${Math.floor(Math.random() * 9) + 1}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 99999999).toString().padStart(7, '0')}`
-  form.emergency_contact_relationship = relationship
+  // Add a sample emergency contact
+  const emergencyContact = {
+    name: `${randomChoice(firstNames)} ${randomChoice(lastNames)}`,
+    relationship: relationship,
+    phone: `09${Math.floor(Math.random() * 9) + 1}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 99999999).toString().padStart(7, '0')}`,
+    email: `emergency${randomId}@email.com`,
+    address: `123 Emergency St., ${randomChoice(['Manila', 'Quezon City', 'Makati', 'Taguig', 'Pasig'])}`,
+    is_primary: true
+  }
+  emergencyContacts.value = [emergencyContact]
+  form.emergency_contacts = emergencyContacts.value
 
   // Address
   const streets = ['Rizal Street', 'Bonifacio Ave', 'Mabini St', 'Del Pilar St', 'Quezon Ave', 'EDSA', 'Taft Ave', 'Ortigas Ave']
@@ -1171,16 +1546,160 @@ const autofillForm = () => {
   console.log(`Form autofilled with unique random test data! Employee ID: ${form.employee_id}, Email: ${form.email}`)
 }
 
-// Load employment types from API on component mount
-onMounted(async () => {
+// Document Management Functions
+const loadDocumentTypes = async () => {
   try {
-    const response = await fetch('/api/employment-types')
+    const response = await fetch('/api/employee-documents/types')
     if (response.ok) {
       const types = await response.json()
-      employmentTypes.value = types
+      documentTypes.value = types
     }
   } catch (error) {
-    console.error('Error loading employment types:', error)
+    console.error('Error loading document types:', error)
+  }
+}
+
+const closeDocumentModal = () => {
+  showDocumentModal.value = false
+  editingDocumentIndex.value = null
+  documentForm.reset()
+}
+
+const handleDocumentFileSelect = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    documentForm.file = file
+  }
+}
+
+const submitDocument = () => {
+  if (editingDocumentIndex.value !== null) {
+    // Update existing document metadata
+    documentList.value[editingDocumentIndex.value] = {
+      ...documentList.value[editingDocumentIndex.value],
+      document_type: documentForm.document_type,
+      document_name: documentForm.document_name,
+      expiry_date: documentForm.expiry_date,
+      notes: documentForm.notes,
+      is_required: documentForm.is_required
+    }
+  } else {
+    // Add new document
+    if (!documentForm.file) {
+      alert('Please select a file to upload.')
+      return
+    }
+
+    const newDocument = {
+      document_type: documentForm.document_type,
+      document_name: documentForm.document_name,
+      file: documentForm.file,
+      file_name: documentForm.file.name,
+      file_size: documentForm.file.size,
+      mime_type: documentForm.file.type,
+      expiry_date: documentForm.expiry_date,
+      notes: documentForm.notes,
+      is_required: documentForm.is_required,
+      id: Date.now() // Temporary ID for frontend
+    }
+
+    documentList.value.push(newDocument)
+  }
+
+  closeDocumentModal()
+}
+
+const editDocument = (index) => {
+  const doc = documentList.value[index]
+  editingDocumentIndex.value = index
+  documentForm.document_type = doc.document_type
+  documentForm.document_name = doc.document_name
+  documentForm.expiry_date = doc.expiry_date
+  documentForm.notes = doc.notes
+  documentForm.is_required = doc.is_required
+  showDocumentModal.value = true
+}
+
+const removeDocument = (index) => {
+  if (confirm('Are you sure you want to remove this document?')) {
+    documentList.value.splice(index, 1)
+  }
+}
+
+const getDocumentTypeLabel = (type) => {
+  return documentTypes.value[type] || type
+}
+
+const formatFileSize = (bytes) => {
+  if (!bytes) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  return new Date(dateString).toLocaleDateString()
+}
+
+// Emergency Contact Management Functions
+const closeEmergencyContactModal = () => {
+  showEmergencyContactModal.value = false
+  editingContactIndex.value = null
+  emergencyContactForm.value = {
+    name: '',
+    relationship: '',
+    phone: '',
+    email: '',
+    address: '',
+    is_primary: false
+  }
+}
+
+const submitEmergencyContact = () => {
+  if (editingContactIndex.value !== null) {
+    // Update existing contact
+    emergencyContacts.value[editingContactIndex.value] = { ...emergencyContactForm.value }
+  } else {
+    // Add new contact
+    emergencyContacts.value.push({ ...emergencyContactForm.value })
+  }
+
+  // Update form data
+  form.emergency_contacts = emergencyContacts.value
+
+  closeEmergencyContactModal()
+}
+
+const editEmergencyContact = (index) => {
+  const contact = emergencyContacts.value[index]
+  editingContactIndex.value = index
+  emergencyContactForm.value = { ...contact }
+  showEmergencyContactModal.value = true
+}
+
+const removeEmergencyContact = (index) => {
+  if (confirm('Are you sure you want to remove this emergency contact?')) {
+    emergencyContacts.value.splice(index, 1)
+    form.emergency_contacts = emergencyContacts.value
+  }
+}
+
+// Load employment types and document types from API on component mount
+onMounted(async () => {
+  try {
+    // Load employment types
+    const employmentResponse = await fetch('/api/employment-types')
+    if (employmentResponse.ok) {
+      const types = await employmentResponse.json()
+      employmentTypes.value = types
+    }
+
+    // Load document types
+    await loadDocumentTypes()
+  } catch (error) {
+    console.error('Error loading data:', error)
     // Keep default values if API fails
   }
 })
