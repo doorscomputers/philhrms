@@ -113,4 +113,19 @@ class Employee extends Model
     {
         return $this->hasMany(EmployeeDocument::class);
     }
+
+    public function supervisor(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'immediate_supervisor_id');
+    }
+
+    public function subordinates(): HasMany
+    {
+        return $this->hasMany(Employee::class, 'immediate_supervisor_id');
+    }
+
+    public function auditTrails(): HasMany
+    {
+        return $this->hasMany(AuditTrail::class, 'model_id')->where('model_type', Employee::class);
+    }
 }

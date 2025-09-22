@@ -20,8 +20,10 @@ class EmployeeViewController extends Controller
             'position',
             'jobGrade',
             'branch',
+            'costCenter',
             'workSchedule',
             'employmentStatus',
+            'supervisor:id,first_name,last_name',
             'documents.uploader:id,name',
             'documents.verifier:id,name'
         ]);
@@ -47,7 +49,7 @@ class EmployeeViewController extends Controller
                    $doc->expiry_date->diffInDays() <= 30;
         });
 
-        return Inertia::render('Employee/EmployeeView', [
+        return Inertia::render('Employee/EmployeeViewEnhanced', [
             'employee' => $employee,
             'documents' => $documents,
             'documentsByType' => $documentsByType,
