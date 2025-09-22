@@ -319,7 +319,7 @@
                       {{ type.label }}
                     </option>
                   </select>
-                  <button type="button" @click="openQuickAddModal('employmentType')" class="quick-add-btn">
+                  <button type="button" @click="showQuickAddModal('employmentType')" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap" title="Add New Employment Type">
                     <i class="fas fa-plus"></i>
                   </button>
                 </div>
