@@ -21,6 +21,19 @@ class StoreDepartmentRequest extends FormRequest
      */
     public function rules(): array
     {
+        // Check if this is a Quick Add request (AJAX with just name and code)
+        $isQuickAdd = $this->ajax() && $this->has('name') && $this->has('code');
+
+        if ($isQuickAdd) {
+            return [
+                'name' => 'required|string|max:255',
+                'code' => 'required|string|max:10|unique:departments,code',
+                'company_id' => 'nullable|exists:companies,id',
+                'description' => 'nullable|string',
+            ];
+        }
+
+        // Full form validation rules
         return [
             'company_id' => 'required|exists:companies,id',
             'branch_id' => 'nullable|exists:company_branches,id',

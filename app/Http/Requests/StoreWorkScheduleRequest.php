@@ -21,6 +21,20 @@ class StoreWorkScheduleRequest extends FormRequest
      */
     public function rules(): array
     {
+        // Check if this is a Quick Add request (AJAX with just name and code)
+        $isQuickAdd = $this->ajax() && $this->has('name') && $this->has('code');
+
+        if ($isQuickAdd) {
+            return [
+                'name' => 'required|string|max:255',
+                'code' => 'nullable|string|max:10|unique:work_schedules,code',
+                'company_id' => 'nullable|exists:companies,id',
+                'type' => 'nullable|in:Fixed,Flexible,Shift,Compressed',
+                'hours_per_day' => 'nullable|numeric|min:1|max:24',
+            ];
+        }
+
+        // Full form validation rules
         return [
             'company_id' => 'nullable|exists:companies,id',
             'name' => 'required|string|max:255',

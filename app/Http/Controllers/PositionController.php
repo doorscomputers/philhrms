@@ -43,24 +43,56 @@ class PositionController extends Controller
      */
     public function store(StorePositionRequest $request)
     {
-        $validated = $request->validated();
-        $validated['company_id'] = $validated['company_id'] ?? 1;
-        $validated['is_active'] = $validated['is_active'] ?? true;
+        try {
+            $validated = $request->validated();
+            $validated['company_id'] = $validated['company_id'] ?? 1;
+            $validated['is_active'] = $validated['is_active'] ?? true;
 
-        // All required fields are now provided by the complete form
+            // For Quick Add requests, set default values for required fields
+            if ($request->ajax() && $request->has('name') && $request->has('code')) {
+                // Map 'name' to 'title' for Quick Add
+                if (!isset($validated['title']) && isset($validated['name'])) {
+                    $validated['title'] = $validated['name'];
+                    unset($validated['name']);
+                }
 
-        $position = Position::create($validated);
+                // Set default values for required fields
+                $validated['department_id'] = $validated['department_id'] ?? 1; // Default department
+                $validated['job_grade_id'] = $validated['job_grade_id'] ?? 1; // Default job grade
+                $validated['type'] = $validated['type'] ?? 'Regular';
+                $validated['level'] = $validated['level'] ?? 'Rank and File';
+                $validated['authorized_headcount'] = $validated['authorized_headcount'] ?? 1;
+                $validated['current_headcount'] = 0;
+                $validated['vacant_positions'] = 1;
+            }
 
-        if ($request->wantsJson()) {
-            return response()->json([
-                'success' => true,
-                'item' => $position,
-                'message' => 'Position created successfully',
-            ]);
+            $position = Position::create($validated);
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'item' => $position,
+                    'message' => 'Position created successfully',
+                ]);
+            }
+
+            return redirect()->route('positions.index')
+                ->with('success', 'Position created successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Position creation failed: ' . $e->getMessage());
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create item. Please try again.',
+                    'error' => $e->getMessage()
+                ], 422);
+            }
+
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Failed to create position: ' . $e->getMessage());
         }
-
-        return redirect()->route('positions.index')
-            ->with('success', 'Position created successfully.');
     }
 
     /**

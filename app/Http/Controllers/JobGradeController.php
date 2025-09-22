@@ -37,27 +37,51 @@ class JobGradeController extends Controller
      */
     public function store(StoreJobGradeRequest $request)
     {
-        $validated = $request->validated();
-        $validated['company_id'] = $validated['company_id'] ?? 1;
-        $validated['is_active'] = $validated['is_active'] ?? true;
+        try {
+            $validated = $request->validated();
+            $validated['company_id'] = $validated['company_id'] ?? 1;
+            $validated['is_active'] = $validated['is_active'] ?? true;
 
-        // Calculate mid_salary if not provided
-        if (! isset($validated['mid_salary']) && isset($validated['min_salary']) && isset($validated['max_salary'])) {
-            $validated['mid_salary'] = ($validated['min_salary'] + $validated['max_salary']) / 2;
+            // For Quick Add requests, set default values for required fields
+            if ($request->ajax() && $request->has('name') && $request->has('code')) {
+                $validated['level'] = $validated['level'] ?? 1;
+                $validated['min_salary'] = $validated['min_salary'] ?? 15000;
+                $validated['max_salary'] = $validated['max_salary'] ?? 50000;
+                $validated['description'] = $validated['description'] ?? 'Quick add job grade';
+            }
+
+            // Calculate mid_salary if not provided
+            if (! isset($validated['mid_salary']) && isset($validated['min_salary']) && isset($validated['max_salary'])) {
+                $validated['mid_salary'] = ($validated['min_salary'] + $validated['max_salary']) / 2;
+            }
+
+            $jobGrade = JobGrade::create($validated);
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'item' => $jobGrade,
+                    'message' => 'Job Grade created successfully',
+                ]);
+            }
+
+            return redirect()->route('job-grades.index')
+                ->with('success', 'Job Grade created successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Job Grade creation failed: ' . $e->getMessage());
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create item. Please try again.',
+                    'error' => $e->getMessage()
+                ], 422);
+            }
+
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Failed to create job grade: ' . $e->getMessage());
         }
-
-        $jobGrade = JobGrade::create($validated);
-
-        if ($request->wantsJson()) {
-            return response()->json([
-                'success' => true,
-                'item' => $jobGrade,
-                'message' => 'Job Grade created successfully',
-            ]);
-        }
-
-        return redirect()->route('job-grades.index')
-            ->with('success', 'Job Grade created successfully.');
     }
 
     /**

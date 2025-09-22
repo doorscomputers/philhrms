@@ -850,9 +850,37 @@ const submitQuickAdd = async () => {
     })
 
     if (response.ok) {
-      window.location.reload()
+      const result = await response.json()
+      if (result.success && result.item) {
+        // Add the new item to the appropriate array and auto-select it
+        if (modalType.value === 'department') {
+          props.departments.push(result.item)
+          form.department_id = result.item.id
+        } else if (modalType.value === 'position') {
+          props.positions.push(result.item)
+          form.position_id = result.item.id
+        } else if (modalType.value === 'jobGrade') {
+          props.jobGrades.push(result.item)
+          form.job_grade_id = result.item.id
+        } else if (modalType.value === 'branch') {
+          props.branches.push(result.item)
+          form.branch_id = result.item.id
+        } else if (modalType.value === 'workSchedule') {
+          props.workSchedules.push(result.item)
+          form.work_schedule_id = result.item.id
+        } else if (modalType.value === 'employmentStatus') {
+          props.employmentStatuses.push(result.item)
+          form.employment_status = result.item.id
+        }
+
+        closeQuickAddModal()
+        alert(result.message || 'Item created successfully!')
+      } else {
+        alert('Failed to create item. Please try again.')
+      }
     } else {
-      alert('Failed to create item. Please try again.')
+      const errorResult = await response.json().catch(() => ({}))
+      alert(errorResult.message || 'Failed to create item. Please try again.')
     }
   } catch (error) {
     console.error('Error creating item:', error)

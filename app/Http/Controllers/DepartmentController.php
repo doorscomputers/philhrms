@@ -38,22 +38,45 @@ class DepartmentController extends Controller
      */
     public function store(StoreDepartmentRequest $request)
     {
-        $validated = $request->validated();
-        $validated['company_id'] = $validated['company_id'] ?? 1;
-        $validated['is_active'] = $validated['is_active'] ?? true;
+        try {
+            $validated = $request->validated();
+            $validated['company_id'] = $validated['company_id'] ?? 1;
+            $validated['is_active'] = $validated['is_active'] ?? true;
 
-        $department = Department::create($validated);
+            // For Quick Add requests, set default values for required fields
+            if ($request->ajax() && $request->has('name') && $request->has('code')) {
+                $validated['description'] = $validated['description'] ?? 'Quick add department';
+                $validated['level'] = 1;
+                $validated['current_headcount'] = 0;
+            }
 
-        if ($request->wantsJson()) {
-            return response()->json([
-                'success' => true,
-                'item' => $department,
-                'message' => 'Department created successfully',
-            ]);
+            $department = Department::create($validated);
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'item' => $department,
+                    'message' => 'Department created successfully',
+                ]);
+            }
+
+            return redirect()->route('departments.index')
+                ->with('success', 'Department created successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Department creation failed: ' . $e->getMessage());
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create item. Please try again.',
+                    'error' => $e->getMessage()
+                ], 422);
+            }
+
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Failed to create department: ' . $e->getMessage());
         }
-
-        return redirect()->route('departments.index')
-            ->with('success', 'Department created successfully.');
     }
 
     /**
