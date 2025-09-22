@@ -14,8 +14,8 @@
 
               <!-- Employee Photo -->
               <div class="flex-shrink-0">
-                <div v-if="employee.photo" class="w-24 h-24 rounded-full overflow-hidden shadow-xl border-4 border-white/20">
-                  <img :src="employee.photo" :alt="fullName" class="w-full h-full object-cover">
+                <div v-if="photoUrl" class="w-24 h-24 rounded-full overflow-hidden shadow-xl border-4 border-white/20">
+                  <img :src="photoUrl" :alt="fullName" class="w-full h-full object-cover">
                 </div>
                 <div v-else class="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center shadow-xl border-4 border-white/20">
                   <i class="fas fa-user text-3xl text-white/80"></i>
@@ -803,6 +803,16 @@ const yearsOfServiceText = computed(() => {
   if (years === 0) return '0 years of service'
   if (years === 1) return '1 year of service'
   return `${years} years of service`
+})
+
+const photoUrl = computed(() => {
+  if (!props.employee.photo) return null
+  // If the photo path already starts with http or /, use it as is
+  if (props.employee.photo.startsWith('http') || props.employee.photo.startsWith('/')) {
+    return props.employee.photo
+  }
+  // Otherwise, prepend /storage/ to access via the public storage symlink
+  return `/storage/${props.employee.photo}`
 })
 
 const statusBadgeClass = computed(() => {
