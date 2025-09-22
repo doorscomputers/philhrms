@@ -9,6 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeDashboardController;
+use App\Http\Controllers\EmployeeViewController;
 use App\Http\Controllers\EmploymentStatusController;
 use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\JobGradeController;
@@ -60,7 +61,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/employees/create', [EmployeeController::class, 'create'])->name('spa.employees.create');
         Route::post('/employees', [EmployeeController::class, 'store'])->name('spa.employees.store');
         Route::post('/employees-simple', [EmployeeController::class, 'storeSimple'])->name('spa.employees.store-simple');
-        Route::get('/employees/{employee}', [EmployeeController::class, 'show'])->name('spa.employees.show');
+        Route::get('/employees/{employee}', [EmployeeViewController::class, 'show'])->name('spa.employees.show');
+        Route::get('/employees/{employee}/timeline', [EmployeeViewController::class, 'timeline'])->name('spa.employees.timeline');
         Route::get('/employees/{employee}/edit', [EmployeeController::class, 'edit'])->name('spa.employees.edit');
         Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('spa.employees.update');
         Route::delete('/employees/{employee}', [EmployeeController::class, 'destroy'])->name('spa.employees.destroy');

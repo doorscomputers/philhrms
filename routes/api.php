@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\OfficeController;
 use App\Http\Controllers\Api\PositionController;
 use App\Http\Controllers\Api\WorkScheduleController;
 use App\Http\Controllers\EmploymentTypeController;
+use App\Http\Controllers\EmployeeDocumentController;
 use Illuminate\Support\Facades\Route;
 
 // For demonstration purposes, temporarily remove auth middleware
@@ -22,11 +23,14 @@ Route::get('/dashboard/recent-activity', [DashboardController::class, 'recentAct
 // Employee CRUD API
 Route::apiResource('employees', EmployeeController::class);
 
-// Employee document management
-Route::get('/employees/{employee}/documents/{documentIndex}/download', [EmployeeController::class, 'downloadDocument'])
-    ->name('employees.documents.download');
-Route::delete('/employees/{employee}/documents/{documentIndex}', [EmployeeController::class, 'deleteDocument'])
-    ->name('employees.documents.delete');
+// Employee document management - New system
+Route::get('/employee-documents/types', [EmployeeDocumentController::class, 'getDocumentTypes']);
+Route::get('/employee-documents', [EmployeeDocumentController::class, 'index']);
+Route::post('/employee-documents', [EmployeeDocumentController::class, 'store']);
+Route::get('/employee-documents/{document}/download', [EmployeeDocumentController::class, 'download']);
+Route::put('/employee-documents/{document}', [EmployeeDocumentController::class, 'update']);
+Route::delete('/employee-documents/{document}', [EmployeeDocumentController::class, 'destroy']);
+Route::get('/employee-documents/expiring-soon', [EmployeeDocumentController::class, 'getExpiringSoon']);
 
 // Management Data APIs
 Route::apiResource('departments', DepartmentController::class);
