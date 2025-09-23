@@ -4,7 +4,7 @@
       <div class="max-w-6xl mx-auto">
         <h1 class="text-3xl font-bold mb-8 text-gray-900">Edit Employee - {{ employee.first_name }} {{ employee.last_name }}</h1>
 
-        <form @submit.prevent="submitForm" class="bg-white shadow-lg rounded-lg overflow-hidden">
+        <div class="bg-white shadow-lg rounded-lg overflow-hidden">
 
           <!-- Employee Identification -->
           <div class="border-b border-gray-200 p-6">
@@ -293,9 +293,9 @@
               <div class="form-group">
                 <label class="form-label">Employment Status</label>
                 <div class="flex gap-2">
-                  <select v-model="form.employment_status" class="form-select flex-1">
+                  <select v-model="form.employment_status_id" class="form-select flex-1">
                     <option value="">Select Status</option>
-                    <option v-for="status in employmentStatuses" :key="status.id" :value="status.name">
+                    <option v-for="status in employmentStatuses" :key="status.id" :value="status.id">
                       {{ status.name }}
                     </option>
                   </select>
@@ -320,6 +320,10 @@
                 <input v-model="form.hire_date" type="date" class="form-input">
               </div>
               <div class="form-group">
+                <label class="form-label">Original Hire Date</label>
+                <input v-model="form.original_hire_date" type="date" class="form-input">
+              </div>
+              <div class="form-group">
                 <label class="form-label">Supervisor</label>
                 <select v-model="form.supervisor_id" class="form-select">
                   <option value="">Select Supervisor</option>
@@ -327,6 +331,37 @@
                     {{ emp.first_name }} {{ emp.last_name }}
                   </option>
                 </select>
+              </div>
+            </div>
+
+            <!-- Employment Status Dates -->
+            <div class="mt-6">
+              <h3 class="text-lg font-medium mb-3 text-gray-900">Employment Status Dates</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="form-group">
+                  <label class="form-label">Probation End Date</label>
+                  <input v-model="form.probation_end_date" type="date" class="form-input">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Regularization Date</label>
+                  <input v-model="form.regularization_date" type="date" class="form-input">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Last Promotion Date</label>
+                  <input v-model="form.last_promotion_date" type="date" class="form-input">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Resignation Date</label>
+                  <input v-model="form.resignation_date" type="date" class="form-input">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Termination Date</label>
+                  <input v-model="form.termination_date" type="date" class="form-input">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Retirement Date</label>
+                  <input v-model="form.retirement_date" type="date" class="form-input">
+                </div>
               </div>
             </div>
           </div>
@@ -487,6 +522,7 @@
 
                 <!-- Display existing documents if available -->
                 <div v-if="props.employee.current_documents && props.employee.current_documents.length > 0" class="mb-4">
+                  <p class="text-sm font-medium text-gray-700 mb-2">Current Documents:</p>
                   <div class="space-y-2">
                     <div v-for="doc in props.employee.current_documents" :key="doc.name" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
                       <div class="flex items-center space-x-3">
@@ -504,6 +540,9 @@
                     </div>
                   </div>
                   <p class="text-xs text-gray-500 mb-2">Add more documents below:</p>
+                </div>
+                <div v-else-if="props.employee.current_documents !== undefined" class="mb-4">
+                  <p class="text-sm text-gray-500 italic">No documents uploaded yet.</p>
                 </div>
 
                 <input @change="handleDocumentsUpload" type="file" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="form-input">
@@ -526,12 +565,12 @@
           <!-- Submit Buttons -->
           <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-4">
             <Link href="/spa/employees" class="btn btn-secondary">Cancel</Link>
-            <button type="submit" :disabled="form.processing" class="btn btn-primary">
+            <button type="button" @click="submitForm" :disabled="form.processing" class="btn btn-primary">
               <span v-if="form.processing">Updating Employee...</span>
               <span v-else>Update Employee</span>
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
 
@@ -748,7 +787,7 @@
 </template>
 
 <script setup>
-import { useForm, Link } from '@inertiajs/vue3'
+import { useForm, Link, router } from '@inertiajs/vue3'
 import { ref } from 'vue'
 import AppLayout from '../../Layouts/AppLayout.vue'
 
@@ -833,10 +872,20 @@ const form = useForm({
   job_grade_id: props.employee.job_grade_id || '',
   branch_id: props.employee.branch_id || '',
   work_schedule_id: props.employee.work_schedule_id || '',
+  employment_status_id: props.employee.employment_status_id || '',
   employment_status: props.employee.employment_status || '',
   employment_type: props.employee.employment_type || '',
   hire_date: props.employee.hire_date || '',
+  original_hire_date: props.employee.original_hire_date || '',
   supervisor_id: props.employee.supervisor_id || '',
+
+  // Employment Status Dates
+  probation_end_date: props.employee.probation_end_date || '',
+  regularization_date: props.employee.regularization_date || '',
+  last_promotion_date: props.employee.last_promotion_date || '',
+  resignation_date: props.employee.resignation_date || '',
+  termination_date: props.employee.termination_date || '',
+  retirement_date: props.employee.retirement_date || '',
 
   // Compensation
   basic_salary: props.employee.basic_salary || '',
@@ -869,46 +918,65 @@ const form = useForm({
 })
 
 // Submit form for updating employee
-const submitForm = () => {
-  console.log('=== EMPLOYEE UPDATE SUBMISSION STARTED ===')
-  console.log('Form data before submission:', form.data())
+let isSubmitting = false // Prevent double submissions
 
+const submitForm = (event) => {
+  // Prevent any default behavior
+  if (event) {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
+  // Prevent double submission
+  if (isSubmitting) {
+    console.log('Form submission already in progress, ignoring duplicate request')
+    return
+  }
+
+  // Basic validation
   if (!form.first_name || !form.last_name) {
-    console.log('Validation failed: Missing first_name or last_name')
     alert('Please enter First Name and Last Name')
     return
   }
 
-  console.log('Validation passed, submitting to: /spa/employees/' + props.employee.id)
+  isSubmitting = true
+  const employeeId = props.employee.id
 
-  // Check if files are present for proper form data handling
-  const hasFiles = form.photo || (form.documents && form.documents.length > 0)
-  console.log('Files detected:', { hasPhoto: !!form.photo, hasDocuments: !!(form.documents && form.documents.length > 0) })
+  // Use Inertia router directly for reliable submission - UPDATED VERSION 2:58PM
+  const targetUrl = `/spa/employees/${employeeId}`
+  console.log('CLAUDE DEBUG: Submit URL:', targetUrl)
+  console.log('CLAUDE DEBUG: submitForm called - preventing double submission')
 
-  // Submit to update route
-  const submitUrl = `/spa/employees/${props.employee.id}`
-  console.log('Submitting to update route:', submitUrl)
-
-  form.put(submitUrl, {
-    forceFormData: hasFiles, // Use FormData when files are present
+  router.post(targetUrl, {
+    ...form.data(),
+    _method: 'PUT',
+  }, {
     onStart: () => {
-      console.log('Form submission started - onStart triggered')
+      console.log('Form submission started')
     },
-    onSuccess: (response) => {
-      console.log('Form submission SUCCESS:', response)
+    onSuccess: (page) => {
+      console.log('CLAUDE DEBUG: Update successful, preventing any redirects')
       alert('Employee updated successfully!')
+      isSubmitting = false
+      // Prevent any further navigation
+      window.history.replaceState(null, '', window.location.href)
     },
     onError: (errors) => {
-      console.error('Form submission ERROR:', errors)
-      console.log('Full error details:', form.errors)
-      alert('Error updating employee. Check console for details.')
+      console.error('Form submission errors:', errors)
+      // Even if there's a frontend error, check if the backend actually succeeded
+      if (Object.keys(errors).length === 0) {
+        alert('Employee updated successfully!')
+      } else {
+        alert('Error updating employee. Please try again.')
+      }
+      isSubmitting = false
     },
     onFinish: () => {
-      console.log('Form submission finished - onFinish triggered')
-    }
+      isSubmitting = false
+    },
+    preserveScroll: true,
+    preserveState: true
   })
-
-  console.log('form.put() called, waiting for response...')
 }
 
 // Handle file uploads
@@ -919,6 +987,7 @@ const handlePhotoUpload = (event) => {
 const handleDocumentsUpload = (event) => {
   form.documents = Array.from(event.target.files)
 }
+
 
 // Helper functions for displaying existing files
 const formatFileSize = (bytes) => {

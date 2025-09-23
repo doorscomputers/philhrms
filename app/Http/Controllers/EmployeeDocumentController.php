@@ -30,7 +30,7 @@ class EmployeeDocumentController extends Controller
         }
 
         $documents = EmployeeDocument::where('employee_id', $employeeId)
-            ->with(['uploader:id,name', 'verifier:id,name'])
+            ->with(['uploader:id,first_name,last_name', 'verifier:id,first_name,last_name'])
             ->orderBy('document_type')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -43,12 +43,23 @@ class EmployeeDocumentController extends Controller
      */
     public function store(Request $request)
     {
+        try {
+            \Log::info('Document upload request received:', [
+                'employee_id' => $request->get('employee_id'),
+                'document_type' => $request->get('document_type'),
+                'document_name' => $request->get('document_name'),
+                'has_file' => $request->hasFile('file'),
+                'is_required' => $request->get('is_required'),
+                'auth_user_id' => auth()->id(),
+                'uploaded_by_will_be' => auth()->id() ?? 1,
+            ]);
+
         $validated = $request->validate([
             'employee_id' => 'required|exists:employees,id',
             'document_type' => 'required|string|max:255',
             'document_name' => 'required|string|max:255',
             'file' => 'required|file|max:10240', // 10MB max
-            'expiry_date' => 'nullable|date|after:today',
+            'expiry_date' => 'nullable|date',
             'notes' => 'nullable|string|max:1000',
             'is_required' => 'nullable|boolean',
         ]);
@@ -66,25 +77,48 @@ class EmployeeDocumentController extends Controller
         );
 
         // Create document record
-        $document = EmployeeDocument::create([
+        $documentData = [
             'employee_id' => $validated['employee_id'],
             'document_type' => $validated['document_type'],
             'document_name' => $validated['document_name'],
             'file_name' => $file->getClientOriginalName(),
             'file_path' => $filePath,
-            'file_size' => $file->getSize(),
+            'file_size' => (string) $file->getSize(),
             'mime_type' => $file->getMimeType(),
             'expiry_date' => $validated['expiry_date'] ?? null,
             'notes' => $validated['notes'] ?? null,
             'is_required' => $validated['is_required'] ?? false,
-            'uploaded_by' => auth()->id(),
+            'uploaded_by' => auth()->id() ?? 1, // Default to admin user if not authenticated
+        ];
+
+        \Log::info('Creating document record with data:', $documentData);
+
+        $document = EmployeeDocument::create($documentData);
+
+        \Log::info('Document created successfully:', [
+            'document_id' => $document->id,
+            'employee_id' => $document->employee_id,
+            'file_path' => $document->file_path,
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Document uploaded successfully',
-            'document' => $document->load(['uploader:id,name'])
+            'document' => $document->load(['uploader:id,first_name,last_name'])
         ], 201);
+        } catch (\Exception $e) {
+            \Log::error('Document upload failed:', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload document: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -128,7 +162,7 @@ class EmployeeDocumentController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Document updated successfully',
-            'document' => $document->fresh()->load(['uploader:id,name', 'verifier:id,name'])
+            'document' => $document->fresh()->load(['uploader:id,first_name,last_name', 'verifier:id,first_name,last_name'])
         ]);
     }
 
@@ -158,7 +192,7 @@ class EmployeeDocumentController extends Controller
         $documents = EmployeeDocument::whereNotNull('expiry_date')
             ->where('expiry_date', '<=', now()->addDays(30))
             ->where('expiry_date', '>=', now())
-            ->with(['employee:id,first_name,last_name', 'uploader:id,name'])
+            ->with(['employee:id,first_name,last_name', 'uploader:id,first_name,last_name'])
             ->orderBy('expiry_date')
             ->get();
 

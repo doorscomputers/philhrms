@@ -24,13 +24,13 @@ class EmployeeViewController extends Controller
             'workSchedule',
             'employmentStatus',
             'supervisor:id,first_name,last_name',
-            'documents.uploader:id,name',
-            'documents.verifier:id,name'
+            'documents.uploader:id,first_name,last_name',
+            'documents.verifier:id,first_name,last_name'
         ]);
 
         // Get employee documents separately for better organization
         $documents = $employee->documents()
-            ->with(['uploader:id,name', 'verifier:id,name'])
+            ->with(['uploader:id,first_name,last_name', 'verifier:id,first_name,last_name'])
             ->orderBy('document_type')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -65,7 +65,7 @@ class EmployeeViewController extends Controller
     public function documents(Employee $employee)
     {
         $documents = $employee->documents()
-            ->with(['uploader:id,name', 'verifier:id,name'])
+            ->with(['uploader:id,first_name,last_name', 'verifier:id,first_name,last_name'])
             ->orderBy('document_type')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -109,7 +109,7 @@ class EmployeeViewController extends Controller
                 'type' => 'document_uploaded',
                 'date' => $document->created_at,
                 'description' => "Document uploaded: {$document->document_name} ({$document->document_type})",
-                'user' => $document->uploader->name ?? 'Unknown',
+                'user' => ($document->uploader->first_name ?? '') . ' ' . ($document->uploader->last_name ?? '') ?: 'Unknown',
                 'changes' => null,
                 'ip_address' => null,
                 'user_agent' => null,
@@ -123,7 +123,7 @@ class EmployeeViewController extends Controller
                     'type' => 'document_verified',
                     'date' => $document->verified_at,
                     'description' => "Document verified: {$document->document_name}",
-                    'user' => $document->verifier->name ?? 'Unknown',
+                    'user' => ($document->verifier->first_name ?? '') . ' ' . ($document->verifier->last_name ?? '') ?: 'Unknown',
                     'changes' => null,
                     'ip_address' => null,
                     'user_agent' => null,

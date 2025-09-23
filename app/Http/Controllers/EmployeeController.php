@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CompanyBranch;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\EmployeeDocument;
 use App\Models\EmploymentStatus;
 use App\Models\JobGrade;
 use App\Models\Position;
@@ -29,9 +30,7 @@ class EmployeeController extends Controller
 
             // Calculate comprehensive HR insights
             $totalEmployees = Employee::count();
-            $activeEmployees = Employee::whereHas('employmentStatus', function($query) {
-                $query->where('name', 'like', '%active%');
-            })->count();
+            $activeEmployees = Employee::where('is_active', true)->count();
 
             // Gender distribution
             $genderStats = Employee::selectRaw('gender, COUNT(*) as count')
@@ -233,6 +232,12 @@ class EmployeeController extends Controller
     public function store(Request $request)
     {
 
+        // Log the employment status data being received
+        \Log::info('Employment status data received:', [
+            'employment_status_id' => $request->get('employment_status_id'),
+            'employment_status' => $request->get('employment_status'),
+        ]);
+
         // Comprehensive validation for all fields
         $validated = $request->validate([
             // Identification
@@ -290,10 +295,20 @@ class EmployeeController extends Controller
             'job_grade_id' => 'nullable|exists:job_grades,id',
             'branch_id' => 'nullable|exists:company_branches,id',
             'work_schedule_id' => 'nullable|exists:work_schedules,id',
+            'employment_status_id' => 'nullable|exists:employment_statuses,id',
             'employment_status' => 'nullable|string|max:100',
             'employment_type' => 'nullable|string|max:50',
             'hire_date' => 'nullable|date',
+            'original_hire_date' => 'nullable|date',
             'supervisor_id' => 'nullable|exists:employees,id',
+
+            // Employment Status Dates
+            'probation_end_date' => 'nullable|date',
+            'regularization_date' => 'nullable|date',
+            'last_promotion_date' => 'nullable|date',
+            'resignation_date' => 'nullable|date',
+            'termination_date' => 'nullable|date',
+            'retirement_date' => 'nullable|date',
 
             // Compensation
             'basic_salary' => 'nullable|numeric|min:0',
@@ -457,33 +472,8 @@ class EmployeeController extends Controller
             $validated['photo'] = $photoPath;
         }
 
-        // Handle documents upload
-        $documents = [];
-        \Log::info('Documents processing:', [
-            'has_documents_file' => $request->hasFile('documents'),
-            'documents_in_request' => $request->has('documents'),
-            'request_documents' => $request->get('documents'),
-        ]);
-
-        if ($request->hasFile('documents')) {
-            \Log::info('Processing uploaded documents files...');
-            foreach ($request->file('documents') as $file) {
-                $documentPath = $file->store('employee_documents', 'public');
-                $documents[] = [
-                    'name' => $file->getClientOriginalName(),
-                    'path' => $documentPath,
-                    'type' => $file->getClientMimeType(),
-                    'size' => $file->getSize(),
-                    'uploaded_at' => now()->toDateTimeString(),
-                ];
-            }
-            \Log::info('Documents processed:', $documents);
-        } else {
-            \Log::info('No documents files found in request');
-        }
-
-        \Log::info('Final documents to save:', $documents);
-        $validated['documents'] = $documents;
+        // Remove documents from validated data since we'll handle it separately
+        unset($validated['documents']);
 
         // Remove individual address/contact fields since we've converted them to JSON
         $fieldsToRemove = ['address_street', 'address_barangay', 'address_city',
@@ -499,18 +489,60 @@ class EmployeeController extends Controller
         try {
             \Log::info('Creating employee with validated data:', [
                 'emergency_contacts' => $validated['emergency_contacts'],
-                'documents' => $validated['documents'],
                 'contact_numbers' => $validated['contact_numbers'],
             ]);
 
             $employee = Employee::create($validated);
 
+            // Handle documents upload using the separate employee_documents table
+            \Log::info('Documents processing:', [
+                'has_documents_file' => $request->hasFile('documents'),
+                'documents_in_request' => $request->has('documents'),
+                'request_documents' => $request->get('documents'),
+            ]);
+
+            if ($request->hasFile('documents')) {
+                \Log::info('Processing uploaded documents files...');
+                foreach ($request->file('documents') as $file) {
+                    $documentPath = $file->store('employee_documents', 'public');
+
+                    $documentData = [
+                        'employee_id' => $employee->id,
+                        'document_type' => 'other', // Default type, could be made configurable
+                        'document_name' => $file->getClientOriginalName(),
+                        'file_name' => $file->getClientOriginalName(),
+                        'file_path' => $documentPath,
+                        'file_size' => $file->getSize(),
+                        'mime_type' => $file->getClientMimeType(),
+                        'uploaded_by' => auth()->id() ?? 1, // Use current user or default to admin
+                        'is_required' => false,
+                        'is_verified' => false,
+                    ];
+
+                    EmployeeDocument::create($documentData);
+                    \Log::info('Document saved to employee_documents table:', $documentData);
+                }
+                \Log::info('All documents processed successfully');
+            } else {
+                \Log::info('No documents files found in request');
+            }
+
             \Log::info('Employee created successfully:', [
                 'id' => $employee->id,
                 'name' => $employee->first_name . ' ' . $employee->last_name,
                 'emergency_contacts_saved' => $employee->emergency_contacts,
-                'documents_saved' => $employee->documents,
+                'documents_count' => $employee->documents()->count(),
             ]);
+
+            // Check if this is an Inertia request that needs the employee data for document uploads
+            if ($request->hasHeader('X-Inertia') && $request->header('Accept') === 'application/json') {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Employee created successfully!',
+                    'employee' => $employee,
+                    'redirect' => route('spa.employees.index')
+                ]);
+            }
 
             return redirect()->route('spa.employees.index')->with('success', 'Employee created successfully!');
         } catch (\Exception $e) {
@@ -539,6 +571,16 @@ class EmployeeController extends Controller
 
         // Transform employee data for the frontend form
         $employeeData = $employee->toArray();
+
+        // Format date fields for HTML date inputs (convert from timestamp to YYYY-MM-DD format)
+        $dateFields = ['original_hire_date', 'probation_end_date', 'regularization_date', 'last_promotion_date', 'resignation_date', 'termination_date', 'retirement_date', 'hire_date'];
+        foreach ($dateFields as $field) {
+            if (!empty($employeeData[$field])) {
+                $employeeData[$field] = date('Y-m-d', strtotime($employeeData[$field]));
+            }
+        }
+
+        // Employment status date fields are now properly formatted for HTML date inputs
 
         // Extract individual fields from JSON arrays for the form
         $contactNumbers = $employee->contact_numbers ?? [];
@@ -616,20 +658,19 @@ class EmployeeController extends Controller
         }
 
         // Handle documents for display
-        $documents = $employee->documents ?? [];
+        $employeeDocuments = $employee->documents()->get();
         $employeeData['current_documents'] = [];
-        if (is_array($documents)) {
-            foreach ($documents as $doc) {
-                if (isset($doc['name']) && isset($doc['path'])) {
-                    $employeeData['current_documents'][] = [
-                        'name' => $doc['name'],
-                        'url' => asset('storage/' . $doc['path']),
-                        'type' => $doc['type'] ?? '',
-                        'size' => $doc['size'] ?? 0,
-                        'uploaded_at' => $doc['uploaded_at'] ?? '',
-                    ];
-                }
-            }
+        foreach ($employeeDocuments as $doc) {
+            $employeeData['current_documents'][] = [
+                'id' => $doc->id,
+                'name' => $doc->document_name,
+                'url' => asset('storage/' . $doc->file_path),
+                'type' => $doc->mime_type,
+                'size' => $doc->file_size,
+                'uploaded_at' => $doc->created_at->toDateTimeString(),
+                'document_type' => $doc->document_type,
+                'is_verified' => $doc->is_verified,
+            ];
 
         }
 
@@ -655,6 +696,15 @@ class EmployeeController extends Controller
      */
     public function update(Request $request, Employee $employee)
     {
+        \Log::info('=== EMPLOYEE UPDATE METHOD CALLED ===', [
+            'employee_id' => $employee->id,
+            'request_method' => $request->method(),
+            'request_url' => $request->url(),
+            'has_files' => $request->hasFile('documents'),
+        ]);
+
+        // Validate and process employment status date fields
+
         // Validation rules for comprehensive Inertia form
         $validated = $request->validate([
             // Employee ID & Badge
@@ -709,10 +759,20 @@ class EmployeeController extends Controller
             'job_grade_id' => 'nullable|exists:job_grades,id',
             'branch_id' => 'nullable|exists:company_branches,id',
             'work_schedule_id' => 'nullable|exists:work_schedules,id',
+            'employment_status_id' => 'nullable|exists:employment_statuses,id',
             'employment_status' => 'nullable|string|max:255',
             'employment_type' => 'nullable|string|max:50',
             'hire_date' => 'nullable|date',
+            'original_hire_date' => 'nullable|date',
             'supervisor_id' => 'nullable|exists:employees,id',
+
+            // Employment Status Dates
+            'probation_end_date' => 'nullable|date',
+            'regularization_date' => 'nullable|date',
+            'last_promotion_date' => 'nullable|date',
+            'resignation_date' => 'nullable|date',
+            'termination_date' => 'nullable|date',
+            'retirement_date' => 'nullable|date',
 
             // Compensation
             'basic_salary' => 'nullable|numeric|min:0',
@@ -774,24 +834,62 @@ class EmployeeController extends Controller
             $validated['is_field_work'] = $validated['is_field_work'] ?? false;
             $validated['is_minimum_wage'] = $validated['is_minimum_wage'] ?? false;
 
-            // Transform individual contact fields back to JSON arrays for storage
+            // Transform individual contact fields back to JSON arrays for storage - PRESERVE existing data
+            $existingContactNumbers = $employee->contact_numbers ?? [];
             $contactNumbers = [];
-            if (!empty($validated['phone'])) {
-                $contactNumbers['primary'] = $validated['phone'];
+
+            // Preserve existing non-primary/secondary contacts
+            if (is_array($existingContactNumbers)) {
+                foreach ($existingContactNumbers as $contact) {
+                    if (!in_array($contact['type'] ?? '', ['primary', 'secondary'])) {
+                        $contactNumbers[] = $contact;
+                    }
+                }
             }
+
+            // Add primary phone if provided
+            if (!empty($validated['phone'])) {
+                $contactNumbers[] = ['type' => 'primary', 'number' => $validated['phone']];
+            }
+            // Add secondary phone if provided
             if (!empty($validated['phone_secondary'])) {
-                $contactNumbers['secondary'] = $validated['phone_secondary'];
+                $contactNumbers[] = ['type' => 'secondary', 'number' => $validated['phone_secondary']];
             }
             $validated['contact_numbers'] = $contactNumbers;
 
+            // Transform email back to JSON array for storage - PRESERVE existing data
+            $existingEmailAddresses = $employee->email_addresses ?? [];
             $emailAddresses = [];
+
+            // Preserve existing non-primary emails
+            if (is_array($existingEmailAddresses)) {
+                foreach ($existingEmailAddresses as $email) {
+                    if (($email['type'] ?? '') !== 'primary') {
+                        $emailAddresses[] = $email;
+                    }
+                }
+            }
+
+            // Add primary email if provided
             if (!empty($validated['email'])) {
-                $emailAddresses['primary'] = $validated['email'];
+                $emailAddresses[] = ['type' => 'primary', 'email' => $validated['email']];
             }
             $validated['email_addresses'] = $emailAddresses;
 
-            // Transform emergency contact fields back to JSON array for storage
+            // Transform emergency contact fields back to JSON array for storage - PRESERVE existing data
+            $existingEmergencyContacts = $employee->emergency_contacts ?? [];
             $emergencyContacts = [];
+
+            // Preserve existing non-primary emergency contacts
+            if (is_array($existingEmergencyContacts)) {
+                foreach ($existingEmergencyContacts as $contact) {
+                    if (($contact['type'] ?? '') !== 'primary') {
+                        $emergencyContacts[] = $contact;
+                    }
+                }
+            }
+
+            // Add primary emergency contact if provided
             if (!empty($validated['emergency_contact_name']) || !empty($validated['emergency_contact_phone'])) {
                 $emergencyContacts[] = [
                     'name' => $validated['emergency_contact_name'] ?? '',
@@ -802,8 +900,20 @@ class EmployeeController extends Controller
             }
             $validated['emergency_contacts'] = $emergencyContacts;
 
-            // Transform address fields back to JSON array for storage
+            // Transform address fields back to JSON array for storage - PRESERVE existing data
+            $existingAddresses = $employee->addresses ?? [];
             $addresses = [];
+
+            // Preserve existing non-primary addresses
+            if (is_array($existingAddresses)) {
+                foreach ($existingAddresses as $address) {
+                    if (($address['type'] ?? '') !== 'primary') {
+                        $addresses[] = $address;
+                    }
+                }
+            }
+
+            // Add primary address if provided
             if (!empty($validated['address_street']) || !empty($validated['address_city'])) {
                 $addresses[] = [
                     'street' => $validated['address_street'] ?? '',
@@ -836,42 +946,52 @@ class EmployeeController extends Controller
             unset($validated['emergency_contact_name'], $validated['emergency_contact_phone'], $validated['emergency_contact_relationship']);
             unset($validated['address_street'], $validated['address_barangay'], $validated['address_city'], $validated['address_province'], $validated['address_postal_code']);
 
-            // Handle photo upload
+            // Handle photo upload - preserve existing photo if no new photo uploaded
             if ($request->hasFile('photo')) {
+                \Log::info('New photo being uploaded, will replace existing photo');
                 // Delete old photo if exists
                 if ($employee->photo && \Storage::disk('public')->exists($employee->photo)) {
                     \Storage::disk('public')->delete($employee->photo);
+                    \Log::info('Deleted old photo: ' . $employee->photo);
                 }
 
                 // Store new photo
                 $photoPath = $request->file('photo')->store('employee_photos', 'public');
                 $validated['photo'] = $photoPath;
+                \Log::info('New photo stored: ' . $photoPath);
+            } else {
+                \Log::info('No new photo uploaded, preserving existing photo: ' . ($employee->photo ?? 'none'));
+                // Don't set photo field to preserve existing photo
             }
 
-            // Handle document management
-            $finalDocuments = [];
+            // Handle document management using employee_documents table
+            // Remove documents from validated data since we'll handle it separately
+            unset($validated['documents']);
 
-            // Start with existing documents that weren't removed
-            if (isset($validated['existing_documents'])) {
-                $existingDocs = json_decode($validated['existing_documents'], true) ?? [];
-                $finalDocuments = array_merge($finalDocuments, $existingDocs);
-            }
-
-            // Add new uploaded documents
+            // Handle new document uploads
             if ($request->hasFile('documents')) {
+                \Log::info('Processing uploaded documents files for employee update...');
                 foreach ($request->file('documents') as $file) {
                     $documentPath = $file->store('employee_documents', 'public');
-                    $finalDocuments[] = [
-                        'name' => $file->getClientOriginalName(),
-                        'path' => $documentPath,
-                        'type' => $file->getClientMimeType(),
-                        'size' => $file->getSize(),
-                        'uploaded_at' => now()->toDateTimeString(),
-                    ];
-                }
-            }
 
-            $validated['documents'] = $finalDocuments;
+                    $documentData = [
+                        'employee_id' => $employee->id,
+                        'document_type' => 'other', // Default type
+                        'document_name' => $file->getClientOriginalName(),
+                        'file_name' => $file->getClientOriginalName(),
+                        'file_path' => $documentPath,
+                        'file_size' => $file->getSize(),
+                        'mime_type' => $file->getClientMimeType(),
+                        'uploaded_by' => auth()->id() ?? 1,
+                        'is_required' => false,
+                        'is_verified' => false,
+                    ];
+
+                    EmployeeDocument::create($documentData);
+                    \Log::info('Document saved to employee_documents table for update:', $documentData);
+                }
+                \Log::info('All documents processed successfully for update');
+            }
 
             // Clean up the form data - remove our helper fields
             unset($validated['existing_documents'], $validated['removed_documents']);
@@ -879,12 +999,32 @@ class EmployeeController extends Controller
             // Set defaults
             $validated['is_active'] = $validated['is_active'] ?? true;
 
+            \Log::info('About to update employee with data:', [
+                'employee_id' => $employee->id,
+                'contact_numbers_count' => count($validated['contact_numbers'] ?? []),
+                'email_addresses_count' => count($validated['email_addresses'] ?? []),
+                'addresses_count' => count($validated['addresses'] ?? []),
+                'emergency_contacts_count' => count($validated['emergency_contacts'] ?? []),
+                'has_photo' => isset($validated['photo']),
+                'employment_status_id' => $validated['employment_status_id'] ?? null,
+                'original_hire_date' => $validated['original_hire_date'] ?? null,
+            ]);
+
             // Update the employee
             $employee->update($validated);
 
-            return redirect()
-                ->route('spa.employees.edit', $employee)
-                ->with('success', 'Employee updated successfully.');
+            \Log::info('Employee updated successfully:', [
+                'employee_id' => $employee->id,
+                'name' => $employee->first_name . ' ' . $employee->last_name,
+                'contact_numbers_after' => $employee->fresh()->contact_numbers,
+                'email_addresses_after' => $employee->fresh()->email_addresses,
+                'photo_after' => $employee->fresh()->photo,
+                'employment_status_id' => $validated['employment_status_id'] ?? null,
+                'original_hire_date' => $validated['original_hire_date'] ?? null,
+            ]);
+
+            // For Inertia requests, redirect back to edit page with success message
+            return redirect()->back()->with('success', 'Employee updated successfully!');
 
         } catch (\Exception $e) {
             \Log::error('Employee update failed: '.$e->getMessage());

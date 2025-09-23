@@ -4,6 +4,7 @@ use App\Http\Controllers\AuditTrailController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CompanyBranchController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\CompanyEventController;
 use App\Http\Controllers\CostCenterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
@@ -57,15 +58,18 @@ Route::middleware('auth')->group(function () {
         Route::get('/', function () {
             return redirect('/spa/employees');
         });
-        Route::get('/employees', [EmployeeController::class, 'index'])->name('spa.employees.index');
+        // More specific routes first (with parameters)
         Route::get('/employees/create', [EmployeeController::class, 'create'])->name('spa.employees.create');
-        Route::post('/employees', [EmployeeController::class, 'store'])->name('spa.employees.store');
-        Route::post('/employees-simple', [EmployeeController::class, 'storeSimple'])->name('spa.employees.store-simple');
-        Route::get('/employees/{employee}', [EmployeeViewController::class, 'show'])->name('spa.employees.show');
         Route::get('/employees/{employee}/timeline', [EmployeeViewController::class, 'timeline'])->name('spa.employees.timeline');
         Route::get('/employees/{employee}/edit', [EmployeeController::class, 'edit'])->name('spa.employees.edit');
+        Route::get('/employees/{employee}', [EmployeeViewController::class, 'show'])->name('spa.employees.show');
         Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('spa.employees.update');
         Route::delete('/employees/{employee}', [EmployeeController::class, 'destroy'])->name('spa.employees.destroy');
+
+        // General routes last
+        Route::get('/employees', [EmployeeController::class, 'index'])->name('spa.employees.index');
+        Route::post('/employees', [EmployeeController::class, 'store'])->name('spa.employees.store');
+        Route::post('/employees-simple', [EmployeeController::class, 'storeSimple'])->name('spa.employees.store-simple');
 
         // Quick Add Routes for Employee Creation
         Route::post('/departments', [DepartmentController::class, 'store'])->name('spa.departments.store');
@@ -92,6 +96,9 @@ Route::middleware('auth')->group(function () {
     Route::resource('leave-types', LeaveTypeController::class)->names('leave-types');
     Route::resource('payroll-groups', PayrollGroupController::class)->names('payroll-groups');
     Route::resource('employment-statuses', EmploymentStatusController::class)->names('employment-statuses');
+
+    // Events Management
+    Route::resource('company-events', CompanyEventController::class)->names('company-events');
 
     // Employee Management
     Route::resource('employees', EmployeeController::class);

@@ -367,6 +367,10 @@
                 <input v-model="form.hire_date" type="date" class="form-input">
               </div>
               <div class="form-group">
+                <label class="form-label">Original Hire Date</label>
+                <input v-model="form.original_hire_date" type="date" class="form-input">
+              </div>
+              <div class="form-group">
                 <label class="form-label">Supervisor</label>
                 <select v-model="form.supervisor_id" class="form-select">
                   <option value="">Select Supervisor</option>
@@ -374,6 +378,37 @@
                     {{ emp.first_name }} {{ emp.last_name }}
                   </option>
                 </select>
+              </div>
+            </div>
+
+            <!-- Employment Status Dates -->
+            <div class="mt-6">
+              <h3 class="text-lg font-medium mb-3 text-gray-900">Employment Status Dates</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="form-group">
+                  <label class="form-label">Probation End Date</label>
+                  <input v-model="form.probation_end_date" type="date" class="form-input">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Regularization Date</label>
+                  <input v-model="form.regularization_date" type="date" class="form-input">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Last Promotion Date</label>
+                  <input v-model="form.last_promotion_date" type="date" class="form-input">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Resignation Date</label>
+                  <input v-model="form.resignation_date" type="date" class="form-input">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Termination Date</label>
+                  <input v-model="form.termination_date" type="date" class="form-input">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Retirement Date</label>
+                  <input v-model="form.retirement_date" type="date" class="form-input">
+                </div>
               </div>
             </div>
           </div>
@@ -919,7 +954,16 @@ const form = useForm({
   employment_status_id: '',
   employment_type: '',
   hire_date: '',
+  original_hire_date: '',
   supervisor_id: '',
+
+  // Employment Status Dates
+  probation_end_date: '',
+  regularization_date: '',
+  last_promotion_date: '',
+  resignation_date: '',
+  termination_date: '',
+  retirement_date: '',
 
   // Compensation
   basic_salary: '',
@@ -962,6 +1006,9 @@ const submitForm = async () => {
   console.log('Submitting comprehensive employee form...', form.data());
 
   // If there are documents to upload, use a different approach
+  console.log('Document count:', documentList.value.length);
+  console.log('Documents to upload:', documentList.value);
+
   if (documentList.value.length > 0) {
     try {
       form.processing = true;
@@ -1015,9 +1062,12 @@ const submitForm = async () => {
         console.log('Employee created successfully, uploading documents...', result);
 
         if (result.success && result.employee) {
+          console.log('Employee created, now uploading documents...');
+          console.log('Employee data received:', result.employee);
           // Upload documents
           await uploadEmployeeDocuments(result.employee.id);
         } else {
+          console.log('Employee created but no employee data returned:', result);
           alert('Employee created successfully!');
           window.location.href = '/spa/employees';
         }
@@ -1065,8 +1115,12 @@ const uploadEmployeeDocuments = async (employeeId) => {
   let uploadedCount = 0;
   let failedCount = 0;
 
+  console.log('Starting document upload for employee ID:', employeeId);
+  console.log('Total documents to upload:', documentList.value.length);
+
   for (const doc of documentList.value) {
     try {
+      console.log('Uploading document:', doc.document_name, 'Type:', doc.document_type);
       const formData = new FormData();
       formData.append('employee_id', employeeId);
       formData.append('document_type', doc.document_type);
@@ -1074,7 +1128,16 @@ const uploadEmployeeDocuments = async (employeeId) => {
       formData.append('file', doc.file);
       if (doc.expiry_date) formData.append('expiry_date', doc.expiry_date);
       if (doc.notes) formData.append('notes', doc.notes);
-      formData.append('is_required', doc.is_required);
+      formData.append('is_required', doc.is_required ? '1' : '0');
+
+      console.log('FormData prepared for document upload:', {
+        employee_id: employeeId,
+        document_type: doc.document_type,
+        document_name: doc.document_name,
+        file_name: doc.file.name,
+        file_size: doc.file.size,
+        is_required: doc.is_required ? '1' : '0'
+      });
 
       const response = await fetch('/api/employee-documents', {
         method: 'POST',
@@ -1087,9 +1150,11 @@ const uploadEmployeeDocuments = async (employeeId) => {
 
       if (response.ok) {
         uploadedCount++;
+        console.log('Document uploaded successfully:', doc.document_name);
       } else {
         failedCount++;
-        console.error('Failed to upload document:', doc.document_name);
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Failed to upload document:', doc.document_name, 'Error:', errorData);
       }
     } catch (error) {
       failedCount++;
@@ -1511,6 +1576,41 @@ const autofillForm = () => {
   }
   form.employment_type = employmentType
   form.hire_date = hireDate
+
+  // Original hire date - usually same as hire date, or slightly earlier for rehires
+  // 80% chance it's the same date, 20% chance it's 1-5 years earlier (for rehires)
+  if (Math.random() > 0.8) {
+    const originalHireDate = new Date(hireDate)
+    originalHireDate.setFullYear(originalHireDate.getFullYear() - Math.floor(Math.random() * 5) - 1) // 1-5 years earlier
+    form.original_hire_date = originalHireDate.toISOString().split('T')[0]
+  } else {
+    form.original_hire_date = hireDate // Same as hire date for most employees
+  }
+
+  // Employment Status Dates - Generate realistic dates based on hire date
+  const hireDateObj = new Date(hireDate)
+
+  // Probation usually ends 3-6 months after hire date
+  const probationEndDate = new Date(hireDateObj)
+  probationEndDate.setMonth(probationEndDate.getMonth() + Math.floor(Math.random() * 4) + 3) // 3-6 months
+  form.probation_end_date = probationEndDate.toISOString().split('T')[0]
+
+  // Regularization usually happens 6-12 months after hire date
+  const regularizationDate = new Date(hireDateObj)
+  regularizationDate.setMonth(regularizationDate.getMonth() + Math.floor(Math.random() * 7) + 6) // 6-12 months
+  form.regularization_date = regularizationDate.toISOString().split('T')[0]
+
+  // Last promotion date (randomly 1-3 years after hire, or leave empty)
+  if (Math.random() > 0.5) { // 50% chance of having a promotion
+    const promotionDate = new Date(hireDateObj)
+    promotionDate.setFullYear(promotionDate.getFullYear() + Math.floor(Math.random() * 3) + 1) // 1-3 years
+    form.last_promotion_date = promotionDate.toISOString().split('T')[0]
+  }
+
+  // Leave resignation, termination, and retirement dates empty as these are usually not set for active employees
+  form.resignation_date = ''
+  form.termination_date = ''
+  form.retirement_date = ''
 
   // Compensation - Random but realistic values
   const baseSalary = (Math.floor(Math.random() * 80000) + 20000) // 20k-100k
