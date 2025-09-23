@@ -534,9 +534,14 @@
                           <p class="text-xs text-gray-500">{{ formatFileSize(doc.size) }} • {{ formatDate(doc.uploaded_at) }}</p>
                         </div>
                       </div>
-                      <a :href="doc.url" target="_blank" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                        View
-                      </a>
+                      <div class="flex items-center space-x-2">
+                        <a :href="doc.url" target="_blank" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                          View
+                        </a>
+                        <button @click="removeDocument(doc)" type="button" class="text-red-600 hover:text-red-800 text-sm font-medium">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <p class="text-xs text-gray-500 mb-2">Add more documents below:</p>
@@ -986,6 +991,49 @@ const handlePhotoUpload = (event) => {
 
 const handleDocumentsUpload = (event) => {
   form.documents = Array.from(event.target.files)
+}
+
+// Remove document function
+const removeDocument = async (doc) => {
+  if (!confirm(`Are you sure you want to remove "${doc.name}"?`)) {
+    return
+  }
+
+  try {
+    const response = await fetch(`/api/employee-documents/${doc.id}`, {
+      method: 'DELETE',
+      headers: {
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (response.ok) {
+      // Remove document from the list
+      const index = props.employee.current_documents.findIndex(d => d.id === doc.id)
+      if (index > -1) {
+        props.employee.current_documents.splice(index, 1)
+      }
+
+      // Show success toast
+      if (window.showToast) {
+        window.showToast('Document removed successfully', 'success')
+      } else {
+        alert('Document removed successfully')
+      }
+    } else {
+      const errorData = await response.json()
+      throw new Error(errorData.message || 'Failed to remove document')
+    }
+  } catch (error) {
+    console.error('Error removing document:', error)
+    if (window.showToast) {
+      window.showToast(error.message || 'Error removing document', 'error')
+    } else {
+      alert(error.message || 'Error removing document')
+    }
+  }
 }
 
 
