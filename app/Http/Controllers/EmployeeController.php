@@ -701,6 +701,14 @@ class EmployeeController extends Controller
             'request_method' => $request->method(),
             'request_url' => $request->url(),
             'has_files' => $request->hasFile('documents'),
+            'emergency_contact_name' => $request->get('emergency_contact_name'),
+            'emergency_contact_phone' => $request->get('emergency_contact_phone'),
+            'emergency_contact_relationship' => $request->get('emergency_contact_relationship'),
+            'address_street' => $request->get('address_street'),
+            'address_barangay' => $request->get('address_barangay'),
+            'address_city' => $request->get('address_city'),
+            'address_province' => $request->get('address_province'),
+            'address_postal_code' => $request->get('address_postal_code'),
         ]);
 
         // Validate and process employment status date fields
@@ -961,7 +969,8 @@ class EmployeeController extends Controller
                 \Log::info('New photo stored: ' . $photoPath);
             } else {
                 \Log::info('No new photo uploaded, preserving existing photo: ' . ($employee->photo ?? 'none'));
-                // Don't set photo field to preserve existing photo
+                // Remove photo from validated data to preserve existing photo
+                unset($validated['photo']);
             }
 
             // Handle document management using employee_documents table
