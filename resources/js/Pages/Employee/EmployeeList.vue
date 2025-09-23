@@ -49,6 +49,238 @@
 
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 -mt-4 relative z-10">
+
+      <!-- HR Dashboard Insights -->
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Quick Stats Row -->
+        <div class="lg:col-span-4 grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <!-- Total Employees -->
+          <div class="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl p-6 text-white">
+            <div class="flex items-center">
+              <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mr-4">
+                <i class="fas fa-users text-xl"></i>
+              </div>
+              <div>
+                <p class="text-blue-100 text-sm">Total Employees</p>
+                <p class="text-2xl font-bold">{{ hrInsights?.totalEmployees || 0 }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Employees -->
+          <div class="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-6 text-white">
+            <div class="flex items-center">
+              <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mr-4">
+                <i class="fas fa-user-check text-xl"></i>
+              </div>
+              <div>
+                <p class="text-emerald-100 text-sm">Active Employees</p>
+                <p class="text-2xl font-bold">{{ hrInsights?.activeEmployees || 0 }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gender Distribution -->
+          <div class="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl p-6 text-white">
+            <div class="flex items-center">
+              <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mr-4">
+                <i class="fas fa-venus-mars text-xl"></i>
+              </div>
+              <div>
+                <p class="text-purple-100 text-sm">Gender Split</p>
+                <p class="text-sm font-medium">
+                  M: {{ hrInsights?.genderStats?.Male || 0 }} |
+                  F: {{ hrInsights?.genderStats?.Female || 0 }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Birthdays This Month -->
+          <div class="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-6 text-white cursor-pointer hover:shadow-lg transition-all"
+               @click="showBirthdayModal = true">
+            <div class="flex items-center">
+              <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mr-4">
+                <i class="fas fa-birthday-cake text-xl"></i>
+              </div>
+              <div>
+                <p class="text-amber-100 text-sm">{{ hrInsights?.currentMonth }} Birthdays</p>
+                <p class="text-2xl font-bold">{{ hrInsights?.birthdaysThisMonth?.length || 0 }}</p>
+                <p class="text-xs text-amber-200">Click to view</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Department Distribution Chart -->
+        <div class="lg:col-span-2 bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 p-6">
+          <div class="flex items-center mb-4">
+            <div class="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center mr-3">
+              <i class="fas fa-sitemap text-white"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-800">Department Distribution</h3>
+          </div>
+          <div class="space-y-3">
+            <div v-for="(count, department) in hrInsights?.departmentStats" :key="department"
+                 class="flex items-center justify-between">
+              <div class="flex items-center">
+                <div class="w-3 h-3 bg-indigo-500 rounded-full mr-3"></div>
+                <span class="text-sm font-medium text-gray-700">{{ department }}</span>
+              </div>
+              <div class="flex items-center">
+                <span class="text-sm font-bold text-gray-900 mr-2">{{ count }}</span>
+                <div class="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div class="h-full bg-indigo-500 transition-all duration-300"
+                       :style="{ width: `${(count / hrInsights?.totalEmployees) * 100}%` }"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="lg:col-span-2 bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 p-6">
+          <div class="flex items-center mb-4">
+            <div class="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center mr-3">
+              <i class="fas fa-clock text-white"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-800">Recent Activity</h3>
+          </div>
+
+          <!-- Recent Hires -->
+          <div class="mb-4">
+            <h4 class="text-sm font-medium text-gray-600 mb-2">Recent Hires (Last 30 days)</h4>
+            <div v-if="hrInsights?.recentHires?.length > 0" class="space-y-2">
+              <div v-for="hire in hrInsights.recentHires.slice(0, 3)" :key="hire.id"
+                   class="flex items-center justify-between bg-green-50 rounded-lg p-2">
+                <div>
+                  <p class="text-sm font-medium text-gray-900">{{ hire.first_name }} {{ hire.last_name }}</p>
+                  <p class="text-xs text-gray-500">{{ hire.department?.name || 'No Department' }}</p>
+                </div>
+                <span class="text-xs text-green-600 font-medium">{{ formatDate(hire.hire_date) }}</span>
+              </div>
+              <button v-if="hrInsights.recentHires.length > 3"
+                      @click="showRecentHiresModal = true"
+                      class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+                View all {{ hrInsights.recentHires.length }} recent hires
+              </button>
+            </div>
+            <p v-else class="text-sm text-gray-500 italic">No recent hires</p>
+          </div>
+
+          <!-- Upcoming Events -->
+          <div>
+            <h4 class="text-sm font-medium text-gray-600 mb-2">Upcoming Events</h4>
+            <div v-if="hrInsights?.upcomingEvents?.length > 0" class="space-y-2">
+              <div v-for="event in hrInsights.upcomingEvents.slice(0, 3)" :key="event.id"
+                   class="flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
+                <div class="flex items-center space-x-3">
+                  <div class="w-8 h-8 rounded-full flex items-center justify-center"
+                       :style="{ backgroundColor: event.color + '20', color: event.color }">
+                    <i :class="getEventIcon(event.event_type)" class="text-xs"></i>
+                  </div>
+                  <div>
+                    <p class="text-sm font-medium text-gray-900">{{ event.title }}</p>
+                    <p class="text-xs text-gray-500">{{ getEventTypeName(event.event_type) }}</p>
+                    <p class="text-xs text-blue-600">{{ formatDate(event.event_date) }}</p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <span class="text-xs font-medium" :class="getPriorityClass(event.priority)">
+                    {{ event.priority.toUpperCase() }}
+                  </span>
+                  <p v-if="event.formatted_time" class="text-xs text-gray-500">{{ event.formatted_time }}</p>
+                </div>
+              </div>
+              <button v-if="hrInsights.upcomingEvents.length > 3"
+                      @click="showUpcomingEventsModal = true"
+                      class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+                View all {{ hrInsights.upcomingEvents.length }} upcoming events
+              </button>
+            </div>
+            <p v-else class="text-sm text-gray-500 italic">No upcoming events</p>
+          </div>
+        </div>
+
+        <!-- Age & Employment Type Distribution -->
+        <div class="lg:col-span-2 bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 p-6">
+          <div class="flex items-center mb-4">
+            <div class="w-10 h-10 bg-gradient-to-r from-rose-500 to-pink-500 rounded-xl flex items-center justify-center mr-3">
+              <i class="fas fa-chart-pie text-white"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-800">Demographics</h3>
+          </div>
+
+          <!-- Age Distribution -->
+          <div class="mb-4">
+            <h4 class="text-sm font-medium text-gray-600 mb-2">Age Groups</h4>
+            <div class="space-y-2">
+              <div v-for="(count, ageGroup) in hrInsights?.ageStats" :key="ageGroup"
+                   class="flex items-center justify-between">
+                <span class="text-sm text-gray-700">{{ ageGroup }}</span>
+                <div class="flex items-center">
+                  <span class="text-sm font-medium text-gray-900 mr-2">{{ count }}</span>
+                  <div class="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div class="h-full bg-rose-500 transition-all duration-300"
+                         :style="{ width: `${(count / hrInsights?.totalEmployees) * 100}%` }"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Employment Type Distribution -->
+          <div>
+            <h4 class="text-sm font-medium text-gray-600 mb-2">Employment Types</h4>
+            <div class="space-y-2">
+              <div v-for="(count, type) in hrInsights?.employmentTypeStats" :key="type"
+                   class="flex items-center justify-between">
+                <span class="text-sm text-gray-700">{{ type }}</span>
+                <div class="flex items-center">
+                  <span class="text-sm font-medium text-gray-900 mr-2">{{ count }}</span>
+                  <div class="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div class="h-full bg-pink-500 transition-all duration-300"
+                         :style="{ width: `${(count / hrInsights?.totalEmployees) * 100}%` }"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="lg:col-span-2 bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 p-6">
+          <div class="flex items-center mb-4">
+            <div class="w-10 h-10 bg-gradient-to-r from-violet-500 to-purple-500 rounded-xl flex items-center justify-center mr-3">
+              <i class="fas fa-bolt text-white"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-800">Quick Actions</h3>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <Link href="/spa/employees/create"
+                  class="flex items-center justify-center bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl p-3 hover:shadow-lg transition-all">
+              <i class="fas fa-plus mr-2"></i>
+              <span class="text-sm font-medium">Add Employee</span>
+            </Link>
+            <button @click="exportEmployees"
+                    class="flex items-center justify-center bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl p-3 hover:shadow-lg transition-all">
+              <i class="fas fa-download mr-2"></i>
+              <span class="text-sm font-medium">Export Data</span>
+            </button>
+            <button @click="showBirthdayModal = true"
+                    class="flex items-center justify-center bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl p-3 hover:shadow-lg transition-all">
+              <i class="fas fa-birthday-cake mr-2"></i>
+              <span class="text-sm font-medium">Birthdays</span>
+            </button>
+            <button @click="generateReport"
+                    class="flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl p-3 hover:shadow-lg transition-all">
+              <i class="fas fa-chart-bar mr-2"></i>
+              <span class="text-sm font-medium">Reports</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Search and Filters Card -->
       <div class="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 mb-8 overflow-hidden">
         <div class="p-6">
@@ -311,6 +543,108 @@
     >
       <i class="fas fa-plus text-xl"></i>
     </Link>
+
+    <!-- Birthday Modal -->
+    <div v-if="showBirthdayModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4 max-h-96 overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">{{ hrInsights?.currentMonth }} Birthdays</h3>
+          <button @click="showBirthdayModal = false" class="text-gray-400 hover:text-gray-600">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div v-if="hrInsights?.birthdaysThisMonth?.length > 0" class="space-y-3">
+          <div v-for="birthday in hrInsights.birthdaysThisMonth" :key="birthday.id"
+               class="flex items-center justify-between bg-amber-50 rounded-lg p-3">
+            <div>
+              <p class="font-medium text-gray-900">{{ birthday.first_name }} {{ birthday.last_name }}</p>
+              <p class="text-sm text-gray-600">{{ formatDate(birthday.birth_date) }}</p>
+            </div>
+            <div class="text-amber-600">
+              <i class="fas fa-birthday-cake"></i>
+            </div>
+          </div>
+        </div>
+        <p v-else class="text-gray-500 text-center py-4">No birthdays this month!</p>
+      </div>
+    </div>
+
+    <!-- Recent Hires Modal -->
+    <div v-if="showRecentHiresModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-2xl p-6 max-w-lg w-full mx-4 max-h-96 overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">Recent Hires (Last 30 Days)</h3>
+          <button @click="showRecentHiresModal = false" class="text-gray-400 hover:text-gray-600">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div v-if="hrInsights?.recentHires?.length > 0" class="space-y-3">
+          <div v-for="hire in hrInsights.recentHires" :key="hire.id"
+               class="flex items-center justify-between bg-green-50 rounded-lg p-3">
+            <div>
+              <p class="font-medium text-gray-900">{{ hire.first_name }} {{ hire.last_name }}</p>
+              <p class="text-sm text-gray-600">{{ hire.department?.name || 'No Department' }}</p>
+              <p class="text-xs text-green-600">Hired: {{ formatDate(hire.hire_date) }}</p>
+            </div>
+            <Link :href="`/spa/employees/${hire.id}`"
+                  class="text-indigo-600 hover:text-indigo-800">
+              <i class="fas fa-eye"></i>
+            </Link>
+          </div>
+        </div>
+        <p v-else class="text-gray-500 text-center py-4">No recent hires!</p>
+      </div>
+    </div>
+
+    <!-- Upcoming Events Modal -->
+    <div v-if="showUpcomingEventsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">Upcoming Events (Next 30 Days)</h3>
+          <button @click="showUpcomingEventsModal = false" class="text-gray-400 hover:text-gray-600">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div v-if="hrInsights?.upcomingEvents?.length > 0" class="space-y-4">
+          <div v-for="event in hrInsights.upcomingEvents" :key="event.id"
+               class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between">
+              <div class="flex items-start space-x-4">
+                <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
+                     :style="{ backgroundColor: event.color + '20', color: event.color }">
+                  <i :class="getEventIcon(event.event_type)" class="text-lg"></i>
+                </div>
+                <div class="flex-1">
+                  <h4 class="font-semibold text-gray-900 mb-1">{{ event.title }}</h4>
+                  <p class="text-sm text-gray-600 mb-2">{{ getEventTypeName(event.event_type) }}</p>
+                  <div class="flex items-center space-x-4 text-xs text-gray-500">
+                    <span class="flex items-center">
+                      <i class="fas fa-calendar mr-1"></i>{{ formatDate(event.event_date) }}
+                    </span>
+                    <span v-if="event.formatted_time" class="flex items-center">
+                      <i class="fas fa-clock mr-1"></i>{{ event.formatted_time }}
+                    </span>
+                    <span v-if="event.location" class="flex items-center">
+                      <i class="fas fa-map-marker-alt mr-1"></i>{{ event.location }}
+                    </span>
+                  </div>
+                  <p v-if="event.description" class="text-sm text-gray-700 mt-2">{{ event.description }}</p>
+                </div>
+              </div>
+              <div class="flex flex-col items-end space-y-2">
+                <span class="text-xs font-medium" :class="getPriorityClass(event.priority)">
+                  {{ event.priority.toUpperCase() }}
+                </span>
+                <span v-if="event.days_until !== undefined" class="text-xs text-gray-500">
+                  {{ event.days_until === 0 ? 'Today' : event.days_until > 0 ? `In ${event.days_until} days` : `${Math.abs(event.days_until)} days ago` }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p v-else class="text-gray-500 text-center py-4">No upcoming events!</p>
+      </div>
+    </div>
     </div>
   </AppLayout>
 </template>
@@ -325,10 +659,14 @@ const props = defineProps({
   departments: Array,
   positions: Array,
   employmentStatuses: Array,
-  employmentTypes: Array
+  employmentTypes: Array,
+  hrInsights: Object
 })
 
 const showManagement = ref(false)
+const showBirthdayModal = ref(false)
+const showRecentHiresModal = ref(false)
+const showUpcomingEventsModal = ref(false)
 const filters = ref({
   search: '',
   department: '',
@@ -453,6 +791,77 @@ const getPhotoUrl = (employee) => {
   if (!employee?.photo) return null
   if (employee.photo.startsWith('http')) return employee.photo
   return `/storage/${employee.photo}`
+}
+
+// HR Dashboard methods
+const getYearsOfService = (hireDate) => {
+  if (!hireDate) return 0
+  const today = new Date()
+  const hire = new Date(hireDate)
+  return Math.floor((today - hire) / (365.25 * 24 * 60 * 60 * 1000))
+}
+
+const exportEmployees = () => {
+  // TODO: Implement CSV export functionality
+  alert('Export functionality will be implemented soon!')
+}
+
+const generateReport = () => {
+  // TODO: Implement comprehensive HR report generation
+  alert('Report generation functionality will be implemented soon!')
+}
+
+const navigateToDashboard = () => {
+  router.visit('/dashboard')
+}
+
+// Events management methods
+const getEventIcon = (eventType) => {
+  const icons = {
+    'company_meeting': 'fas fa-users',
+    'training': 'fas fa-graduation-cap',
+    'holiday': 'fas fa-calendar-day',
+    'birthday': 'fas fa-birthday-cake',
+    'work_anniversary': 'fas fa-award',
+    'team_building': 'fas fa-handshake',
+    'performance_review': 'fas fa-chart-line',
+    'compliance_training': 'fas fa-shield-alt',
+    'benefits_enrollment': 'fas fa-file-medical',
+    'social_event': 'fas fa-glass-cheers',
+    'conference': 'fas fa-microphone',
+    'deadline': 'fas fa-clock',
+    'other': 'fas fa-calendar'
+  }
+  return icons[eventType] || 'fas fa-calendar'
+}
+
+const getEventTypeName = (eventType) => {
+  const types = {
+    'company_meeting': 'Company Meeting',
+    'training': 'Training',
+    'holiday': 'Holiday',
+    'birthday': 'Birthday',
+    'work_anniversary': 'Work Anniversary',
+    'team_building': 'Team Building',
+    'performance_review': 'Performance Review',
+    'compliance_training': 'Compliance Training',
+    'benefits_enrollment': 'Benefits Enrollment',
+    'social_event': 'Social Event',
+    'conference': 'Conference',
+    'deadline': 'Deadline',
+    'other': 'Other Event'
+  }
+  return types[eventType] || 'Event'
+}
+
+const getPriorityClass = (priority) => {
+  const classes = {
+    'low': 'text-green-600 bg-green-100 px-2 py-1 rounded-full',
+    'medium': 'text-blue-600 bg-blue-100 px-2 py-1 rounded-full',
+    'high': 'text-orange-600 bg-orange-100 px-2 py-1 rounded-full',
+    'critical': 'text-red-600 bg-red-100 px-2 py-1 rounded-full'
+  }
+  return classes[priority] || 'text-gray-600 bg-gray-100 px-2 py-1 rounded-full'
 }
 </script>
 

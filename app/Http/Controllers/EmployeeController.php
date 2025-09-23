@@ -709,6 +709,10 @@ class EmployeeController extends Controller
             'address_city' => $request->get('address_city'),
             'address_province' => $request->get('address_province'),
             'address_postal_code' => $request->get('address_postal_code'),
+            'employment_status_id' => $request->get('employment_status_id'),
+            'original_hire_date' => $request->get('original_hire_date'),
+            'sick_leave_balance' => $request->get('sick_leave_balance'),
+            'emergency_leave_balance' => $request->get('emergency_leave_balance'),
         ]);
 
         // Validate and process employment status date fields
@@ -891,22 +895,43 @@ class EmployeeController extends Controller
             // Preserve existing non-primary emergency contacts
             if (is_array($existingEmergencyContacts)) {
                 foreach ($existingEmergencyContacts as $contact) {
-                    if (($contact['type'] ?? '') !== 'primary') {
+                    // Skip primary contacts (both type='primary' and is_primary=true)
+                    $isPrimary = ($contact['type'] ?? '') === 'primary' ||
+                                 ($contact['is_primary'] ?? false) === true;
+                    if (!$isPrimary) {
                         $emergencyContacts[] = $contact;
                     }
                 }
             }
 
             // Add primary emergency contact if provided
+            \Log::info('Processing emergency contact fields:', [
+                'emergency_contact_name' => $validated['emergency_contact_name'] ?? 'NULL',
+                'emergency_contact_phone' => $validated['emergency_contact_phone'] ?? 'NULL',
+                'emergency_contact_relationship' => $validated['emergency_contact_relationship'] ?? 'NULL',
+                'existing_emergency_contacts_count' => count($existingEmergencyContacts),
+                'preserved_non_primary_count' => count($emergencyContacts),
+            ]);
+
             if (!empty($validated['emergency_contact_name']) || !empty($validated['emergency_contact_phone'])) {
-                $emergencyContacts[] = [
+                $newPrimaryContact = [
                     'name' => $validated['emergency_contact_name'] ?? '',
                     'phone' => $validated['emergency_contact_phone'] ?? '',
                     'relationship' => $validated['emergency_contact_relationship'] ?? '',
                     'type' => 'primary'
                 ];
+                $emergencyContacts[] = $newPrimaryContact;
+
+                \Log::info('Added new primary emergency contact:', $newPrimaryContact);
+            } else {
+                \Log::info('No emergency contact data provided - skipping primary emergency contact creation');
             }
             $validated['emergency_contacts'] = $emergencyContacts;
+
+            \Log::info('Final emergency contacts array:', [
+                'count' => count($emergencyContacts),
+                'contacts' => $emergencyContacts,
+            ]);
 
             // Transform address fields back to JSON array for storage - PRESERVE existing data
             $existingAddresses = $employee->addresses ?? [];
@@ -915,15 +940,27 @@ class EmployeeController extends Controller
             // Preserve existing non-primary addresses
             if (is_array($existingAddresses)) {
                 foreach ($existingAddresses as $address) {
-                    if (($address['type'] ?? '') !== 'primary') {
+                    // Skip primary addresses (both type='primary' and type='current')
+                    $isPrimary = in_array($address['type'] ?? '', ['primary', 'current']);
+                    if (!$isPrimary) {
                         $addresses[] = $address;
                     }
                 }
             }
 
             // Add primary address if provided
+            \Log::info('Processing address fields:', [
+                'address_street' => $validated['address_street'] ?? 'NULL',
+                'address_barangay' => $validated['address_barangay'] ?? 'NULL',
+                'address_city' => $validated['address_city'] ?? 'NULL',
+                'address_province' => $validated['address_province'] ?? 'NULL',
+                'address_postal_code' => $validated['address_postal_code'] ?? 'NULL',
+                'existing_addresses_count' => count($existingAddresses),
+                'preserved_non_primary_count' => count($addresses),
+            ]);
+
             if (!empty($validated['address_street']) || !empty($validated['address_city'])) {
-                $addresses[] = [
+                $newPrimaryAddress = [
                     'street' => $validated['address_street'] ?? '',
                     'barangay' => $validated['address_barangay'] ?? '',
                     'city' => $validated['address_city'] ?? '',
@@ -931,17 +968,40 @@ class EmployeeController extends Controller
                     'postal_code' => $validated['address_postal_code'] ?? '',
                     'type' => 'primary'
                 ];
+                $addresses[] = $newPrimaryAddress;
+
+                \Log::info('Added new primary address:', $newPrimaryAddress);
+            } else {
+                \Log::info('No address data provided - skipping primary address creation');
             }
             $validated['addresses'] = $addresses;
 
+            \Log::info('Final addresses array:', [
+                'count' => count($addresses),
+                'addresses' => $addresses,
+            ]);
+
             // Handle employment status transformation
+            \Log::info('Employment status processing:', [
+                'employment_status_id_before' => $validated['employment_status_id'] ?? 'NULL',
+                'employment_status_string' => $validated['employment_status'] ?? 'NULL',
+            ]);
+
             if (!empty($validated['employment_status'])) {
                 $employmentStatus = EmploymentStatus::where('name', $validated['employment_status'])->first();
                 if ($employmentStatus) {
                     $validated['employment_status_id'] = $employmentStatus->id;
+                    \Log::info('Employment status converted from string to ID:', [
+                        'string' => $validated['employment_status'],
+                        'new_id' => $employmentStatus->id,
+                    ]);
                 }
             }
             unset($validated['employment_status']); // Remove the string field
+
+            \Log::info('Employment status processing complete:', [
+                'final_employment_status_id' => $validated['employment_status_id'] ?? 'NULL',
+            ]);
 
             // Map supervisor_id to immediate_supervisor_id
             if (isset($validated['supervisor_id'])) {
