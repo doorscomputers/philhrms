@@ -981,13 +981,14 @@ class EmployeeController extends Controller
                 'addresses' => $addresses,
             ]);
 
-            // Handle employment status transformation
+            // Handle employment status transformation - prioritize ID over string
             \Log::info('Employment status processing:', [
                 'employment_status_id_before' => $validated['employment_status_id'] ?? 'NULL',
                 'employment_status_string' => $validated['employment_status'] ?? 'NULL',
             ]);
 
-            if (!empty($validated['employment_status'])) {
+            // Only convert from string if no ID is provided or ID is empty
+            if (empty($validated['employment_status_id']) && !empty($validated['employment_status'])) {
                 $employmentStatus = EmploymentStatus::where('name', $validated['employment_status'])->first();
                 if ($employmentStatus) {
                     $validated['employment_status_id'] = $employmentStatus->id;
@@ -996,6 +997,8 @@ class EmployeeController extends Controller
                         'new_id' => $employmentStatus->id,
                     ]);
                 }
+            } else {
+                \Log::info('Using employment_status_id directly, skipping string conversion');
             }
             unset($validated['employment_status']); // Remove the string field
 
