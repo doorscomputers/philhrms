@@ -110,9 +110,40 @@ class AuditTrailController extends Controller
             ->paginate(25)
             ->withQueryString();
 
+        // Load employee with relationships for context
+        $employee->load([
+            'department:id,name',
+            'position:id,title',
+            'jobGrade:id,name',
+            'employmentStatus:id,name',
+            'workSchedule:id,name',
+            'branch:id,name',
+            'costCenter:id,name',
+            'supervisor:id,first_name,last_name,preferred_name'
+        ]);
+
+        // Get lookup data for foreign key translations
+        $lookupData = [
+            'companies' => \App\Models\Company::pluck('name', 'id')->toArray(),
+            'departments' => \App\Models\Department::pluck('name', 'id')->toArray(),
+            'positions' => \App\Models\Position::pluck('title', 'id')->toArray(), // Using 'title' instead of 'name'
+            'jobGrades' => \App\Models\JobGrade::pluck('name', 'id')->toArray(),
+            'employmentStatuses' => \App\Models\EmploymentStatus::pluck('name', 'id')->toArray(),
+            'workSchedules' => \App\Models\WorkSchedule::pluck('name', 'id')->toArray(),
+            'branches' => \App\Models\CompanyBranch::pluck('name', 'id')->toArray(),
+            'costCenters' => \App\Models\CostCenter::pluck('name', 'id')->toArray(),
+            'users' => \App\Models\User::get()->mapWithKeys(function ($user) {
+                return [$user->id => $user->name];
+            })->toArray(),
+            'employees' => \App\Models\Employee::get()->mapWithKeys(function ($employee) {
+                return [$employee->id => $employee->first_name . ' ' . $employee->last_name];
+            })->toArray(),
+        ];
+
         return Inertia::render('Employee/EmployeeAuditTrail', [
             'employee' => $employee,
             'auditTrails' => $auditTrails,
+            'lookupData' => $lookupData,
         ]);
     }
 }

@@ -91,6 +91,21 @@ class EmployeeViewController extends Controller
 
         $timeline = collect();
 
+        // Get lookup data for foreign key translations
+        $lookupData = [
+            'companies' => \App\Models\Company::pluck('name', 'id')->toArray(),
+            'departments' => \App\Models\Department::pluck('name', 'id')->toArray(),
+            'positions' => \App\Models\Position::pluck('title', 'id')->toArray(),
+            'jobGrades' => \App\Models\JobGrade::pluck('name', 'id')->toArray(),
+            'employmentStatuses' => \App\Models\EmploymentStatus::pluck('name', 'id')->toArray(),
+            'workSchedules' => \App\Models\WorkSchedule::pluck('name', 'id')->toArray(),
+            'branches' => \App\Models\CompanyBranch::pluck('name', 'id')->toArray(),
+            'costCenters' => \App\Models\CostCenter::pluck('name', 'id')->toArray(),
+            'employees' => \App\Models\Employee::get()->mapWithKeys(function ($emp) {
+                return [$emp->id => $emp->first_name . ' ' . $emp->last_name];
+            })->toArray(),
+        ];
+
         // Add audit trail entries
         if ($auditTrails && $auditTrails->count() > 0) {
             foreach ($auditTrails as $audit) {
@@ -99,7 +114,7 @@ class EmployeeViewController extends Controller
                 'date' => $audit->created_at,
                 'description' => $audit->description ?? 'Record modified',
                 'user' => $audit->user_name ?? ($audit->user ? $audit->user->name : 'System'),
-                'changes' => $audit->formatted_changes ?? 'No specific changes recorded',
+                'changes' => $this->formatUserFriendlyChanges($audit->changed_fields, $lookupData),
                 'ip_address' => $audit->ip_address,
                 'user_agent' => $audit->user_agent,
                 'action_color' => $this->getActionColor($audit->action),
@@ -215,5 +230,168 @@ class EmployeeViewController extends Controller
             'deleted' => 'trash',
             default => 'info',
         };
+    }
+
+    /**
+     * Format audit trail changes with human-readable values
+     */
+    private function formatUserFriendlyChanges($changedFields, $lookupData): string
+    {
+        if (empty($changedFields) || !is_array($changedFields)) {
+            return 'No specific changes recorded';
+        }
+
+        $formatted = [];
+        foreach ($changedFields as $field => $values) {
+            $oldValue = $values['old'] ?? null;
+            $newValue = $values['new'] ?? null;
+
+            // Format field name
+            $fieldDisplayName = $this->getFieldDisplayName($field);
+
+            // Format values using lookup data
+            $formattedOldValue = $this->formatDisplayValue($field, $oldValue, $lookupData);
+            $formattedNewValue = $this->formatDisplayValue($field, $newValue, $lookupData);
+
+            $formatted[] = "<strong>{$fieldDisplayName}:</strong> {$formattedOldValue} → {$formattedNewValue}";
+        }
+
+        return implode('<br>', $formatted);
+    }
+
+    /**
+     * Get user-friendly field display name
+     */
+    private function getFieldDisplayName(string $fieldName): string
+    {
+        $fieldMappings = [
+            'first_name' => 'First Name',
+            'last_name' => 'Last Name',
+            'middle_name' => 'Middle Name',
+            'preferred_name' => 'Preferred Name',
+            'employee_id' => 'Employee ID',
+            'badge_number' => 'Badge Number',
+            'biometric_id' => 'Biometric ID',
+            'email' => 'Email Address',
+            'phone' => 'Phone Number',
+            'mobile_phone' => 'Mobile Phone',
+            'hire_date' => 'Hire Date',
+            'birth_date' => 'Birth Date',
+            'gender' => 'Gender',
+            'marital_status' => 'Marital Status',
+            'nationality' => 'Nationality',
+            'religion' => 'Religion',
+            'department_id' => 'Department',
+            'position_id' => 'Position',
+            'job_grade_id' => 'Job Grade',
+            'employment_status_id' => 'Employment Status',
+            'employment_type' => 'Employment Type',
+            'work_schedule_id' => 'Work Schedule',
+            'branch_id' => 'Branch',
+            'cost_center_id' => 'Cost Center',
+            'company_id' => 'Company',
+            'supervisor_id' => 'Supervisor',
+            'immediate_supervisor_id' => 'Immediate Supervisor',
+            'is_active' => 'Active Status',
+            'basic_salary' => 'Basic Salary',
+            'allowances' => 'Allowances',
+            'probation_end_date' => 'Probation End Date',
+            'regularization_date' => 'Regularization Date',
+            'contract_start_date' => 'Contract Start Date',
+            'contract_end_date' => 'Contract End Date',
+            'addresses' => 'Addresses',
+            'emergency_contacts' => 'Emergency Contacts',
+            'education_background' => 'Education Background',
+            'work_experience' => 'Work Experience',
+            'certifications' => 'Certifications',
+            'skills' => 'Skills',
+            'tin_number' => 'TIN Number',
+            'sss_number' => 'SSS Number',
+            'philhealth_number' => 'PhilHealth Number',
+            'pagibig_number' => 'Pag-IBIG Number',
+            'updated_at' => 'Last Updated',
+        ];
+
+        return $fieldMappings[$fieldName] ?? ucfirst(str_replace('_', ' ', $fieldName));
+    }
+
+    /**
+     * Format display value using lookup data
+     */
+    private function formatDisplayValue(string $fieldName, $value, array $lookupData): string
+    {
+        if ($value === null || $value === '') {
+            return '<em>Not specified</em>';
+        }
+
+        // Handle boolean values
+        if (is_bool($value)) {
+            return $value ? 'Yes' : 'No';
+        }
+
+        // Handle specific field formatting
+        switch ($fieldName) {
+            case 'is_active':
+                return ($value === true || $value === 1 || $value === '1') ? 'Active' : 'Inactive';
+
+            case 'gender':
+                return $value === 'M' ? 'Male' : ($value === 'F' ? 'Female' : $value);
+
+            case 'basic_salary':
+            case 'allowances':
+                return is_numeric($value) ?
+                    '₱' . number_format((float)$value, 2) : $value;
+
+            case 'hire_date':
+            case 'birth_date':
+            case 'probation_end_date':
+            case 'regularization_date':
+            case 'contract_start_date':
+            case 'contract_end_date':
+                return $value ? date('F j, Y', strtotime($value)) : 'Not specified';
+
+            case 'updated_at':
+                return $value ? date('F j, Y g:i:s A', strtotime($value)) : 'Not specified';
+
+            case 'department_id':
+                return $lookupData['departments'][$value] ?? "Department (ID: {$value})";
+
+            case 'position_id':
+                return $lookupData['positions'][$value] ?? "Position (ID: {$value})";
+
+            case 'job_grade_id':
+                return $lookupData['jobGrades'][$value] ?? "Job Grade (ID: {$value})";
+
+            case 'employment_status_id':
+                return $lookupData['employmentStatuses'][$value] ?? "Employment Status (ID: {$value})";
+
+            case 'work_schedule_id':
+                return $lookupData['workSchedules'][$value] ?? "Work Schedule (ID: {$value})";
+
+            case 'branch_id':
+                return $lookupData['branches'][$value] ?? "Branch (ID: {$value})";
+
+            case 'cost_center_id':
+                return $lookupData['costCenters'][$value] ?? "Cost Center (ID: {$value})";
+
+            case 'company_id':
+                return $lookupData['companies'][$value] ?? "Company (ID: {$value})";
+
+            case 'supervisor_id':
+            case 'immediate_supervisor_id':
+                return $lookupData['employees'][$value] ?? "Supervisor (ID: {$value})";
+
+            default:
+                // Handle arrays and objects
+                if (is_array($value)) {
+                    return count($value) > 0 ? count($value) . ' items' : 'Empty';
+                }
+
+                if (is_object($value)) {
+                    return 'Complex data';
+                }
+
+                return (string)$value;
+        }
     }
 }

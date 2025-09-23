@@ -6,8 +6,41 @@
                 <div class="p-6 bg-white border-b border-gray-200">
                     <div class="flex justify-between items-center">
                         <div>
-                            <h2 class="text-xl font-semibold text-gray-900">Audit Trail</h2>
+                            <!-- Breadcrumb Navigation -->
+                            <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-4">
+                                <button @click="navigateToHome" class="hover:text-blue-600 transition-colors">
+                                    <i class="fas fa-home"></i>
+                                    Dashboard
+                                </button>
+                                <i class="fas fa-chevron-right text-xs"></i>
+                                <button @click="navigateToEmployees" class="hover:text-blue-600 transition-colors">
+                                    <i class="fas fa-users"></i>
+                                    Employees
+                                </button>
+                                <i class="fas fa-chevron-right text-xs"></i>
+                                <span class="text-gray-700 font-medium">
+                                    <i class="fas fa-history"></i>
+                                    Audit Trail
+                                </span>
+                            </nav>
+                            <h2 class="text-xl font-semibold text-gray-900">System Audit Trail</h2>
                             <p class="text-sm text-gray-600">Track all changes made to system records</p>
+                        </div>
+                        <div class="flex space-x-3">
+                            <button
+                                @click="navigateToEmployees"
+                                class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+                            >
+                                <i class="fas fa-users mr-2"></i>
+                                Back to Employees
+                            </button>
+                            <button
+                                @click="navigateToHome"
+                                class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm bg-blue-600 text-sm font-medium text-white hover:bg-blue-700"
+                            >
+                                <i class="fas fa-home mr-2"></i>
+                                Dashboard
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -219,7 +252,7 @@ const localFilters = ref({
 })
 
 const applyFilters = () => {
-    router.get(route('audit-trails.index'), localFilters.value, {
+    router.get('/audit-trails', localFilters.value, {
         preserveState: true,
         replace: true
     })
@@ -283,5 +316,13 @@ const getActionIcon = (action) => {
         default:
             return 'fas fa-info'
     }
+}
+
+const navigateToHome = () => {
+    router.visit('/dashboard')
+}
+
+const navigateToEmployees = () => {
+    router.visit('/employees')
 }
 </script>

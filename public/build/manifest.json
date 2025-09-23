@@ -1,17 +1,13 @@
 {
-  "_AppLayout-CNGJ9TyO.js": {
-    "file": "assets/AppLayout-CNGJ9TyO.js",
+  "_AppLayout-BAtFVyhX.js": {
+    "file": "assets/AppLayout-BAtFVyhX.js",
     "name": "AppLayout",
     "imports": [
       "resources/js/inertia-app.js"
     ]
   },
-  "__plugin-vue_export-helper-DlAUqK2U.js": {
-    "file": "assets/_plugin-vue_export-helper-DlAUqK2U.js",
-    "name": "_plugin-vue_export-helper"
-  },
   "resources/css/app.css": {
-    "file": "assets/app-COTW8gDR.css",
+    "file": "assets/app-DflaO51W.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "names": [
@@ -19,169 +15,174 @@
     ]
   },
   "resources/js/Pages/Dashboard.vue": {
-    "file": "assets/Dashboard-Co55qPHC.js",
+    "file": "assets/Dashboard-ISRAsQwP.js",
     "name": "Dashboard",
     "src": "resources/js/Pages/Dashboard.vue",
     "isDynamicEntry": true,
     "imports": [
-      "resources/js/inertia-app.js",
-      "__plugin-vue_export-helper-DlAUqK2U.js"
+      "resources/js/inertia-app.js"
+    ]
+  },
+  "resources/js/Pages/Employee/EmployeeAuditTrail.vue": {
+    "file": "assets/EmployeeAuditTrail-D9zbaC_x.js",
+    "name": "EmployeeAuditTrail",
+    "src": "resources/js/Pages/Employee/EmployeeAuditTrail.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/inertia-app.js"
     ]
   },
   "resources/js/Pages/Employee/EmployeeCreateNew.vue": {
-    "file": "assets/EmployeeCreateNew-DOGmSd4I.js",
+    "file": "assets/EmployeeCreateNew-BhwC6_F_.js",
     "name": "EmployeeCreateNew",
     "src": "resources/js/Pages/Employee/EmployeeCreateNew.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/inertia-app.js",
-      "_AppLayout-CNGJ9TyO.js"
+      "_AppLayout-BAtFVyhX.js"
     ]
   },
   "resources/js/Pages/Employee/EmployeeEdit.vue": {
-    "file": "assets/EmployeeEdit-BTCI083J.js",
+    "file": "assets/EmployeeEdit-bCtjhvUC.js",
     "name": "EmployeeEdit",
     "src": "resources/js/Pages/Employee/EmployeeEdit.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/inertia-app.js",
-      "_AppLayout-CNGJ9TyO.js"
+      "_AppLayout-BAtFVyhX.js"
     ]
   },
   "resources/js/Pages/Employee/EmployeeList.vue": {
-    "file": "assets/EmployeeList-BKHjv2tG.js",
+    "file": "assets/EmployeeList-B0oK1l9B.js",
     "name": "EmployeeList",
     "src": "resources/js/Pages/Employee/EmployeeList.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/inertia-app.js",
-      "_AppLayout-CNGJ9TyO.js",
-      "__plugin-vue_export-helper-DlAUqK2U.js"
+      "_AppLayout-BAtFVyhX.js"
     ],
     "css": [
-      "assets/EmployeeList-CZepbDvO.css"
+      "assets/EmployeeList-1xHGRIoj.css"
     ]
   },
-  "resources/js/Pages/Employee/EmployeeListSimple.vue": {
-    "file": "assets/EmployeeListSimple-MSrZA-GX.js",
-    "name": "EmployeeListSimple",
-    "src": "resources/js/Pages/Employee/EmployeeListSimple.vue",
+  "resources/js/Pages/Employee/EmployeeViewEnhanced.vue": {
+    "file": "assets/EmployeeViewEnhanced-D-8B1t5r.js",
+    "name": "EmployeeViewEnhanced",
+    "src": "resources/js/Pages/Employee/EmployeeViewEnhanced.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/inertia-app.js",
-      "__plugin-vue_export-helper-DlAUqK2U.js"
-    ]
-  },
-  "resources/js/Pages/Employee/EmployeeListTest.vue": {
-    "file": "assets/EmployeeListTest-CXeymoqg.js",
-    "name": "EmployeeListTest",
-    "src": "resources/js/Pages/Employee/EmployeeListTest.vue",
-    "isDynamicEntry": true,
-    "imports": [
-      "resources/js/inertia-app.js",
-      "__plugin-vue_export-helper-DlAUqK2U.js"
-    ]
-  },
-  "resources/js/Pages/Employee/EmployeeListWorking.vue": {
-    "file": "assets/EmployeeListWorking-BbvO4DCF.js",
-    "name": "EmployeeListWorking",
-    "src": "resources/js/Pages/Employee/EmployeeListWorking.vue",
-    "isDynamicEntry": true,
-    "imports": [
-      "resources/js/inertia-app.js",
-      "__plugin-vue_export-helper-DlAUqK2U.js"
-    ]
-  },
-  "resources/js/Pages/Employee/EmployeeShow.vue": {
-    "file": "assets/EmployeeShow-WplvaX6S.js",
-    "name": "EmployeeShow",
-    "src": "resources/js/Pages/Employee/EmployeeShow.vue",
-    "isDynamicEntry": true,
-    "imports": [
-      "resources/js/inertia-app.js",
-      "__plugin-vue_export-helper-DlAUqK2U.js"
-    ]
-  },
-  "resources/js/Pages/Employee/EmployeeSimpleCRUD.vue": {
-    "file": "assets/EmployeeSimpleCRUD-CvIe-LdR.js",
-    "name": "EmployeeSimpleCRUD",
-    "src": "resources/js/Pages/Employee/EmployeeSimpleCRUD.vue",
-    "isDynamicEntry": true,
-    "imports": [
-      "resources/js/inertia-app.js",
-      "_AppLayout-CNGJ9TyO.js"
-    ]
-  },
-  "resources/js/Pages/Employee/EmployeeTestMinimal.vue": {
-    "file": "assets/EmployeeTestMinimal-Cr5iuicI.js",
-    "name": "EmployeeTestMinimal",
-    "src": "resources/js/Pages/Employee/EmployeeTestMinimal.vue",
-    "isDynamicEntry": true,
-    "imports": [
-      "resources/js/inertia-app.js",
-      "_AppLayout-CNGJ9TyO.js"
-    ]
-  },
-  "resources/js/Pages/Employee/EmployeeTestSimple.vue": {
-    "file": "assets/EmployeeTestSimple-Bg2XeXxa.js",
-    "name": "EmployeeTestSimple",
-    "src": "resources/js/Pages/Employee/EmployeeTestSimple.vue",
-    "isDynamicEntry": true,
-    "imports": [
-      "resources/js/inertia-app.js",
-      "__plugin-vue_export-helper-DlAUqK2U.js"
+      "_AppLayout-BAtFVyhX.js"
+    ],
+    "css": [
+      "assets/EmployeeViewEnhanced-zCdpoaT9.css"
     ]
   },
   "resources/js/Pages/Management/DepartmentManager.vue": {
-    "file": "assets/DepartmentManager-B_QAq3h2.js",
+    "file": "assets/DepartmentManager-BehEvSgz.js",
     "name": "DepartmentManager",
     "src": "resources/js/Pages/Management/DepartmentManager.vue",
     "isDynamicEntry": true,
     "imports": [
-      "resources/js/inertia-app.js",
-      "__plugin-vue_export-helper-DlAUqK2U.js"
+      "resources/js/inertia-app.js"
     ]
   },
   "resources/js/Pages/Management/OfficeManager.vue": {
-    "file": "assets/OfficeManager-DGPB4U_6.js",
+    "file": "assets/OfficeManager-CMsyCfYS.js",
     "name": "OfficeManager",
     "src": "resources/js/Pages/Management/OfficeManager.vue",
     "isDynamicEntry": true,
     "imports": [
-      "resources/js/inertia-app.js",
-      "__plugin-vue_export-helper-DlAUqK2U.js"
+      "resources/js/inertia-app.js"
     ]
   },
   "resources/js/Pages/Management/PositionManager.vue": {
-    "file": "assets/PositionManager-CUOsuOo7.js",
+    "file": "assets/PositionManager-zNDIYe8L.js",
     "name": "PositionManager",
     "src": "resources/js/Pages/Management/PositionManager.vue",
     "isDynamicEntry": true,
     "imports": [
-      "resources/js/inertia-app.js",
-      "__plugin-vue_export-helper-DlAUqK2U.js"
+      "resources/js/inertia-app.js"
+    ]
+  },
+  "resources/js/Pages/Organization/AuditTrailIndex.vue": {
+    "file": "assets/AuditTrailIndex-CsMfEX7Q.js",
+    "name": "AuditTrailIndex",
+    "src": "resources/js/Pages/Organization/AuditTrailIndex.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/inertia-app.js"
+    ]
+  },
+  "resources/js/Pages/Organization/DepartmentIndex.vue": {
+    "file": "assets/DepartmentIndex-CqRGglrn.js",
+    "name": "DepartmentIndex",
+    "src": "resources/js/Pages/Organization/DepartmentIndex.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/inertia-app.js"
+    ]
+  },
+  "resources/js/Pages/Organization/EmploymentTypeIndex.vue": {
+    "file": "assets/EmploymentTypeIndex-DMPgBgJc.js",
+    "name": "EmploymentTypeIndex",
+    "src": "resources/js/Pages/Organization/EmploymentTypeIndex.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/inertia-app.js"
+    ]
+  },
+  "resources/js/Pages/Organization/JobGradeIndex.vue": {
+    "file": "assets/JobGradeIndex-wTFNLlH1.js",
+    "name": "JobGradeIndex",
+    "src": "resources/js/Pages/Organization/JobGradeIndex.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/inertia-app.js"
+    ]
+  },
+  "resources/js/Pages/Organization/PositionIndex.vue": {
+    "file": "assets/PositionIndex-DZBR1SS_.js",
+    "name": "PositionIndex",
+    "src": "resources/js/Pages/Organization/PositionIndex.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/inertia-app.js"
+    ]
+  },
+  "resources/js/Pages/Organization/WorkScheduleIndex.vue": {
+    "file": "assets/WorkScheduleIndex-CNn3_80N.js",
+    "name": "WorkScheduleIndex",
+    "src": "resources/js/Pages/Organization/WorkScheduleIndex.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/inertia-app.js"
     ]
   },
   "resources/js/inertia-app.js": {
-    "file": "assets/inertia-app-B2ltxMEQ.js",
+    "file": "assets/inertia-app-BhfqKf1u.js",
     "name": "inertia-app",
     "src": "resources/js/inertia-app.js",
     "isEntry": true,
     "dynamicImports": [
       "resources/js/Pages/Dashboard.vue",
+      "resources/js/Pages/Employee/EmployeeAuditTrail.vue",
       "resources/js/Pages/Employee/EmployeeCreateNew.vue",
       "resources/js/Pages/Employee/EmployeeEdit.vue",
       "resources/js/Pages/Employee/EmployeeList.vue",
-      "resources/js/Pages/Employee/EmployeeListSimple.vue",
-      "resources/js/Pages/Employee/EmployeeListTest.vue",
-      "resources/js/Pages/Employee/EmployeeListWorking.vue",
-      "resources/js/Pages/Employee/EmployeeShow.vue",
-      "resources/js/Pages/Employee/EmployeeSimpleCRUD.vue",
-      "resources/js/Pages/Employee/EmployeeTestMinimal.vue",
-      "resources/js/Pages/Employee/EmployeeTestSimple.vue",
+      "resources/js/Pages/Employee/EmployeeViewEnhanced.vue",
       "resources/js/Pages/Management/DepartmentManager.vue",
       "resources/js/Pages/Management/OfficeManager.vue",
-      "resources/js/Pages/Management/PositionManager.vue"
+      "resources/js/Pages/Management/PositionManager.vue",
+      "resources/js/Pages/Organization/AuditTrailIndex.vue",
+      "resources/js/Pages/Organization/DepartmentIndex.vue",
+      "resources/js/Pages/Organization/EmploymentTypeIndex.vue",
+      "resources/js/Pages/Organization/JobGradeIndex.vue",
+      "resources/js/Pages/Organization/PositionIndex.vue",
+      "resources/js/Pages/Organization/WorkScheduleIndex.vue"
+    ],
+    "css": [
+      "assets/inertia-app-1UtxLkEX.css"
     ]
   }
 }
