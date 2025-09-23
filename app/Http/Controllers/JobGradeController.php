@@ -6,6 +6,7 @@ use App\Http\Requests\StoreJobGradeRequest;
 use App\Http\Requests\UpdateJobGradeRequest;
 use App\Models\Company;
 use App\Models\JobGrade;
+use Inertia\Inertia;
 
 class JobGradeController extends Controller
 {
@@ -14,12 +15,14 @@ class JobGradeController extends Controller
      */
     public function index()
     {
-        $jobGrades = JobGrade::select(['id', 'name', 'code', 'level', 'min_salary', 'max_salary', 'is_active'])
+        $jobGrades = JobGrade::select(['id', 'name', 'code', 'level', 'min_salary', 'mid_salary', 'max_salary', 'is_active', 'created_at'])
             ->where('company_id', 1)
             ->orderBy('level')
-            ->get();
+            ->paginate(15);
 
-        return view('job-grades.index', compact('jobGrades'));
+        return Inertia::render('Organization/JobGradeIndex', [
+            'jobGrades' => $jobGrades,
+        ]);
     }
 
     /**
@@ -111,7 +114,20 @@ class JobGradeController extends Controller
     {
         $validated = $request->validated();
 
+        // Calculate mid_salary if not provided
+        if (! isset($validated['mid_salary']) && isset($validated['min_salary']) && isset($validated['max_salary'])) {
+            $validated['mid_salary'] = ($validated['min_salary'] + $validated['max_salary']) / 2;
+        }
+
         $jobGrade->update($validated);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Job Grade updated successfully.',
+                'jobGrade' => $jobGrade->fresh()
+            ]);
+        }
 
         return redirect()->route('job-grades.index')
             ->with('success', 'Job Grade updated successfully.');
@@ -124,17 +140,36 @@ class JobGradeController extends Controller
     {
         // Check if job grade has employees
         if ($jobGrade->employees()->count() > 0) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete job grade that has employees.'
+                ], 422);
+            }
             return redirect()->route('job-grades.index')
                 ->with('error', 'Cannot delete job grade that has employees.');
         }
 
         // Check if job grade has positions
         if ($jobGrade->positions()->count() > 0) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete job grade that has positions.'
+                ], 422);
+            }
             return redirect()->route('job-grades.index')
                 ->with('error', 'Cannot delete job grade that has positions.');
         }
 
         $jobGrade->delete();
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Job Grade deleted successfully.'
+            ]);
+        }
 
         return redirect()->route('job-grades.index')
             ->with('success', 'Job Grade deleted successfully.');

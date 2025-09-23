@@ -338,7 +338,7 @@
                 <label class="form-label">Employment Status</label>
                 <div class="flex gap-2">
                   <select v-model="form.employment_status_id" class="form-select flex-1">
-                    <option value="">Select Status</option>
+                    <option value="">Select Employment Status</option>
                     <option v-for="status in employmentStatuses" :key="status.id" :value="status.id">
                       {{ status.name }}
                     </option>
@@ -352,7 +352,7 @@
                 <label class="form-label">Employment Type</label>
                 <div class="flex gap-2">
                   <select v-model="form.employment_type" class="form-select flex-1">
-                    <option value="">Select Type</option>
+                    <option value="">Select Employment Type</option>
                     <option v-for="type in employmentTypes" :key="type.value" :value="type.value">
                       {{ type.label }}
                     </option>
@@ -999,7 +999,7 @@ const form = useForm({
 const submitForm = async () => {
   // Validate required fields
   if (!form.first_name || !form.last_name) {
-    alert('Please fill in all required fields: First Name and Last Name');
+    window.$toast?.error('Validation Error', 'Please fill in all required fields: First Name and Last Name');
     return;
   }
 
@@ -1068,17 +1068,17 @@ const submitForm = async () => {
           await uploadEmployeeDocuments(result.employee.id);
         } else {
           console.log('Employee created but no employee data returned:', result);
-          alert('Employee created successfully!');
+          window.$toast?.success('Success!', 'Employee created successfully!');
           window.location.href = '/spa/employees';
         }
       } else {
         const errorData = await response.json();
         console.error('Employee creation failed:', errorData);
-        alert('Failed to create employee: ' + (errorData.message || 'Unknown error'));
+        window.$toast?.error('Creation Failed', 'Failed to create employee: ' + (errorData.message || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error creating employee:', error);
-      alert('Error creating employee: ' + error.message);
+      window.$toast?.error('Error', 'Error creating employee: ' + error.message);
     } finally {
       form.processing = false;
     }
@@ -1089,12 +1089,12 @@ const submitForm = async () => {
         console.log('Form submission started...');
       },
       onSuccess: () => {
-        alert('Employee created successfully!');
+        window.$toast?.success('Success!', 'Employee created successfully!');
         window.location.href = '/spa/employees';
       },
       onError: (errors) => {
         console.error('Validation errors:', errors);
-        alert('Please check the form for errors: ' + JSON.stringify(errors));
+        window.$toast?.error('Validation Error', 'Please check the form for errors');
       },
       onFinish: () => {
         console.log('Form submission completed');
@@ -1107,7 +1107,7 @@ const submitForm = async () => {
 const uploadEmployeeDocuments = async (employeeId) => {
   if (!employeeId) {
     console.error('No employee ID provided for document upload');
-    alert('Employee created but documents could not be uploaded - missing employee ID');
+    window.$toast?.warning('Warning', 'Employee created but documents could not be uploaded - missing employee ID');
     window.location.href = '/spa/employees';
     return;
   }
@@ -1164,9 +1164,9 @@ const uploadEmployeeDocuments = async (employeeId) => {
 
   // Show results and redirect
   if (failedCount === 0) {
-    alert(`Employee created successfully! ${uploadedCount} document(s) uploaded.`);
+    window.$toast?.success('Success!', `Employee created successfully! ${uploadedCount} document(s) uploaded.`);
   } else {
-    alert(`Employee created successfully! ${uploadedCount} document(s) uploaded, ${failedCount} failed.`);
+    window.$toast?.warning('Partial Success', `Employee created successfully! ${uploadedCount} document(s) uploaded, ${failedCount} failed.`);
   }
 
   window.location.href = '/spa/employees';
@@ -1234,10 +1234,10 @@ const submitQuickAdd = async () => {
         payFrequencies.value.push(quickAddForm.value.name)
         form.pay_frequency = quickAddForm.value.name
         closeQuickAddModal()
-        alert('Pay Frequency added successfully!')
+        window.$toast?.success('Success!', 'Pay Frequency added successfully!')
         return
       } else {
-        alert('Pay Frequency already exists or invalid name!')
+        window.$toast?.error('Error', 'Pay Frequency already exists or invalid name!')
         return
       }
     }
@@ -1253,14 +1253,14 @@ const submitQuickAdd = async () => {
           })
           form.tax_status = quickAddForm.value.code
           closeQuickAddModal()
-          alert('Tax Status added successfully!')
+          window.$toast?.success('Success!', 'Tax Status added successfully!')
           return
         } else {
-          alert('Tax Status code already exists!')
+          window.$toast?.error('Error', 'Tax Status code already exists!')
           return
         }
       } else {
-        alert('Please fill all required fields!')
+        window.$toast?.warning('Validation Error', 'Please fill all required fields!')
         return
       }
     }
@@ -1324,17 +1324,17 @@ const submitQuickAdd = async () => {
         }
 
         closeQuickAddModal()
-        alert(result.message || 'Item created successfully!')
+        window.$toast?.success('Success!', result.message || 'Item created successfully!')
       } else {
-        alert('Failed to create item. Please try again.')
+        window.$toast?.error('Creation Failed', 'Failed to create item. Please try again.')
       }
     } else {
       const errorResult = await response.json().catch(() => ({}))
-      alert(errorResult.message || 'Failed to create item. Please try again.')
+      window.$toast?.error('Creation Failed', errorResult.message || 'Failed to create item. Please try again.')
     }
   } catch (error) {
     console.error('Error creating item:', error)
-    alert('Error creating item. Please try again.')
+    window.$toast?.error('Error', 'Error creating item. Please try again.')
   }
 }
 
@@ -1686,7 +1686,7 @@ const submitDocument = () => {
   } else {
     // Add new document
     if (!documentForm.file) {
-      alert('Please select a file to upload.')
+      window.$toast?.warning('Validation Error', 'Please select a file to upload.')
       return
     }
 

@@ -294,7 +294,7 @@
                 <label class="form-label">Employment Status</label>
                 <div class="flex gap-2">
                   <select v-model="form.employment_status_id" class="form-select flex-1">
-                    <option value="">Select Status</option>
+                    <option value="">Select Employment Status</option>
                     <option v-for="status in employmentStatuses" :key="status.id" :value="status.id">
                       {{ status.name }}
                     </option>
@@ -307,7 +307,7 @@
               <div class="form-group">
                 <label class="form-label">Employment Type</label>
                 <select v-model="form.employment_type" class="form-select">
-                  <option value="">Select Type</option>
+                  <option value="">Select Employment Type</option>
                   <option value="Full-time">Full-time</option>
                   <option value="Part-time">Part-time</option>
                   <option value="Contract">Contract</option>
@@ -935,7 +935,7 @@ const submitForm = (event) => {
 
   // Basic validation
   if (!form.first_name || !form.last_name) {
-    alert('Please enter First Name and Last Name')
+    window.$toast?.error('Validation Error', 'Please enter First Name and Last Name')
     return
   }
 
@@ -956,7 +956,7 @@ const submitForm = (event) => {
     },
     onSuccess: (page) => {
       console.log('CLAUDE DEBUG: Update successful, preventing any redirects')
-      alert('Employee updated successfully!')
+      window.$toast?.success('Success!', 'Employee updated successfully!')
       isSubmitting = false
       // Prevent any further navigation
       window.history.replaceState(null, '', window.location.href)
@@ -965,9 +965,9 @@ const submitForm = (event) => {
       console.error('Form submission errors:', errors)
       // Even if there's a frontend error, check if the backend actually succeeded
       if (Object.keys(errors).length === 0) {
-        alert('Employee updated successfully!')
+        window.$toast?.success('Success!', 'Employee updated successfully!')
       } else {
-        alert('Error updating employee. Please try again.')
+        window.$toast?.error('Update Failed', 'Error updating employee. Please try again.')
       }
       isSubmitting = false
     },
@@ -1196,10 +1196,10 @@ const submitQuickAdd = async () => {
         payFrequencies.value.push(quickAddForm.value.name)
         form.pay_frequency = quickAddForm.value.name
         closeQuickAddModal()
-        alert('Pay Frequency added successfully!')
+        window.$toast?.success('Success!', 'Pay Frequency added successfully!')
         return
       } else {
-        alert('Pay Frequency already exists or invalid name!')
+        window.$toast?.error('Error', 'Pay Frequency already exists or invalid name!')
         return
       }
     } else if (modalType.value === 'taxStatus') {
@@ -1213,14 +1213,14 @@ const submitQuickAdd = async () => {
           })
           form.tax_status = quickAddForm.value.code
           closeQuickAddModal()
-          alert('Tax Status added successfully!')
+          window.$toast?.success('Success!', 'Tax Status added successfully!')
           return
         } else {
-          alert('Tax Status code already exists!')
+          window.$toast?.error('Error', 'Tax Status code already exists!')
           return
         }
       } else {
-        alert('Please fill all required fields!')
+        window.$toast?.warning('Validation Error', 'Please fill all required fields!')
         return
       }
     } else {
@@ -1249,11 +1249,11 @@ const submitQuickAdd = async () => {
       window.location.reload()
     } else {
       console.error('Failed to create item')
-      alert('Failed to create item. Please try again.')
+      window.$toast?.error('Creation Failed', 'Failed to create item. Please try again.')
     }
   } catch (error) {
     console.error('Error creating item:', error)
-    alert('Error creating item. Please try again.')
+    window.$toast?.error('Error', 'Error creating item. Please try again.')
   }
 }
 

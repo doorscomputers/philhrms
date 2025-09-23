@@ -60,4 +60,12 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Get the user's full name.
+     */
+    public function getNameAttribute(): string
+    {
+        return $this->preferred_name ?: trim($this->first_name . ' ' . $this->last_name);
+    }
 }

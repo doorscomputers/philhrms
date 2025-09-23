@@ -58,6 +58,10 @@
                       class="bg-emerald-500/20 hover:bg-emerald-500/30 backdrop-blur-sm text-white px-6 py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 hover:shadow-xl">
                 <i class="fas fa-file-upload mr-2"></i>Upload Document
               </button>
+              <Link :href="`/employees/${employee.id}/audit-trail`"
+                    class="bg-purple-500/20 hover:bg-purple-500/30 backdrop-blur-sm text-white px-6 py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 hover:shadow-xl">
+                <i class="fas fa-history mr-2"></i>View Audit Trail
+              </Link>
             </div>
           </div>
         </div>

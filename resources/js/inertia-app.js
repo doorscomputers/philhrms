@@ -1,6 +1,7 @@
 import { createApp, h } from 'vue'
 import { createInertiaApp } from '@inertiajs/vue3'
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers'
+import Toast from './Components/Toast.vue'
 
 // Configure Axios/Inertia to include CSRF token
 import axios from 'axios'
@@ -19,9 +20,17 @@ createInertiaApp({
   title: (title) => `${title} - PH HRMS`,
   resolve: (name) => resolvePageComponent(`./Pages/${name}.vue`, import.meta.glob('./Pages/**/*.vue')),
   setup({ el, App, props, plugin }) {
-    return createApp({ render: () => h(App, props) })
-      .use(plugin)
-      .mount(el)
+    const app = createApp({
+      render: () => h('div', [
+        h(App, props),
+        h(Toast)
+      ])
+    })
+
+    app.use(plugin)
+    app.component('Toast', Toast)
+
+    return app.mount(el)
   },
   progress: {
     color: '#2563eb',

@@ -7,27 +7,23 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class EmploymentStatus extends Model
+class PayFrequency extends Model
 {
     use Auditable, HasFactory;
 
     protected $fillable = [
-        'code',
         'name',
+        'code',
         'description',
-        'color',
+        'days_per_period',
+        'periods_per_year',
         'is_active',
-        'requires_probation',
-        'eligible_for_benefits',
-        'sort_order',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
-            'requires_probation' => 'boolean',
-            'eligible_for_benefits' => 'boolean',
         ];
     }
 
@@ -43,6 +39,6 @@ class EmploymentStatus extends Model
 
     public function scopeOrdered($query)
     {
-        return $query->orderBy('sort_order')->orderBy('name');
+        return $query->orderBy('name');
     }
 }

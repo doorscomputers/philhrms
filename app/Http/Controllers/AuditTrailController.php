@@ -3,13 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\AuditTrail;
+use App\Models\User;
+use App\Models\Employee;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class AuditTrailController extends Controller
 {
     public function index(Request $request)
     {
-        $query = AuditTrail::query();
+        $query = AuditTrail::with('user');
 
         // Filter by model type
         if ($request->filled('model_type')) {
@@ -45,7 +48,7 @@ class AuditTrailController extends Controller
             $query->where('description', 'like', '%'.$request->search.'%');
         }
 
-        $auditTrails = $query->orderBy('created_at', 'desc')->paginate(25);
+        $auditTrails = $query->orderBy('created_at', 'desc')->paginate(25)->withQueryString();
 
         // Get unique model types for filter
         $modelTypes = AuditTrail::select('model_type')
@@ -65,7 +68,16 @@ class AuditTrailController extends Controller
             ->orderBy('action')
             ->pluck('action');
 
-        return view('audit-trails.index', compact('auditTrails', 'modelTypes', 'actions'));
+        // Get users for filter
+        $users = User::select('id', 'first_name', 'last_name', 'preferred_name')->orderBy('first_name')->get();
+
+        return Inertia::render('Organization/AuditTrailIndex', [
+            'auditTrails' => $auditTrails,
+            'modelTypes' => $modelTypes,
+            'actions' => $actions,
+            'users' => $users,
+            'filters' => $request->only(['model_type', 'model_id', 'action', 'user_id', 'date_from', 'date_to', 'search']),
+        ]);
     }
 
     public function show(Request $request, string $modelType, int $modelId)
@@ -73,13 +85,34 @@ class AuditTrailController extends Controller
         // Decode the URL-encoded model type
         $decodedModelType = urldecode($modelType);
 
-        $auditTrails = AuditTrail::where('model_type', $decodedModelType)
+        $auditTrails = AuditTrail::with('user')
+            ->where('model_type', $decodedModelType)
             ->where('model_id', $modelId)
             ->orderBy('created_at', 'desc')
             ->paginate(25);
 
         $modelName = class_basename($decodedModelType);
 
-        return view('audit-trails.show', compact('auditTrails', 'modelType', 'modelId', 'modelName'));
+        return Inertia::render('Organization/AuditTrailShow', [
+            'auditTrails' => $auditTrails,
+            'modelType' => $modelType,
+            'modelId' => $modelId,
+            'modelName' => $modelName,
+        ]);
+    }
+
+    public function employeeAuditTrail(Request $request, Employee $employee)
+    {
+        $auditTrails = AuditTrail::where('model_type', Employee::class)
+            ->where('model_id', $employee->id)
+            ->with('user')
+            ->orderBy('created_at', 'desc')
+            ->paginate(25)
+            ->withQueryString();
+
+        return Inertia::render('Employee/EmployeeAuditTrail', [
+            'employee' => $employee,
+            'auditTrails' => $auditTrails,
+        ]);
     }
 }

@@ -8,6 +8,7 @@ use App\Models\Company;
 use App\Models\Department;
 use App\Models\JobGrade;
 use App\Models\Position;
+use Inertia\Inertia;
 
 class PositionController extends Controller
 {
@@ -22,7 +23,14 @@ class PositionController extends Controller
             ->latest()
             ->paginate(15);
 
-        return view('positions.index', compact('positions'));
+        $departments = Department::where('is_active', true)->get(['id', 'name']);
+        $jobGrades = JobGrade::where('is_active', true)->get(['id', 'name']);
+
+        return Inertia::render('Organization/PositionIndex', [
+            'positions' => $positions,
+            'departments' => $departments,
+            'jobGrades' => $jobGrades,
+        ]);
     }
 
     /**
@@ -129,6 +137,14 @@ class PositionController extends Controller
 
         $position->update($validated);
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Position updated successfully.',
+                'position' => $position->fresh(['department', 'jobGrade'])
+            ]);
+        }
+
         return redirect()->route('positions.index')
             ->with('success', 'Position updated successfully.');
     }
@@ -140,17 +156,36 @@ class PositionController extends Controller
     {
         // Check if position has employees
         if ($position->employees()->count() > 0) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete position that has employees.'
+                ], 422);
+            }
             return redirect()->route('positions.index')
                 ->with('error', 'Cannot delete position that has employees.');
         }
 
         // Check if position has subordinate positions
         if ($position->subordinates()->count() > 0) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete position that has subordinate positions.'
+                ], 422);
+            }
             return redirect()->route('positions.index')
                 ->with('error', 'Cannot delete position that has subordinate positions.');
         }
 
         $position->delete();
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Position deleted successfully.'
+            ]);
+        }
 
         return redirect()->route('positions.index')
             ->with('success', 'Position deleted successfully.');

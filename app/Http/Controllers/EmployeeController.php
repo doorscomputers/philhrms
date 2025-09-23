@@ -713,6 +713,8 @@ class EmployeeController extends Controller
             'original_hire_date' => $request->get('original_hire_date'),
             'sick_leave_balance' => $request->get('sick_leave_balance'),
             'emergency_leave_balance' => $request->get('emergency_leave_balance'),
+            'is_active' => $request->get('is_active'),
+            'is_active_value' => $request->get('is_active') ? 'true' : 'false',
         ]);
 
         // Validate and process employment status date fields

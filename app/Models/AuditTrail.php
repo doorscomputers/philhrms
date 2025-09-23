@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AuditTrail extends Model
 {
@@ -34,55 +35,64 @@ class AuditTrail extends Model
         return $this->morphTo('model');
     }
 
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function getChangedFieldsAttribute(): array
+    {
+        if (empty($this->old_values) || empty($this->new_values)) {
+            return [];
+        }
+
+        $changes = [];
+        $oldValues = $this->old_values;
+        $newValues = $this->new_values;
+
+        foreach ($newValues as $field => $newValue) {
+            $oldValue = $oldValues[$field] ?? null;
+            if ($oldValue !== $newValue) {
+                $changes[$field] = [
+                    'old' => $oldValue,
+                    'new' => $newValue
+                ];
+            }
+        }
+
+        return $changes;
+    }
+
     public function getFormattedChangesAttribute(): string
     {
-        if (empty($this->changed_fields)) {
+        $changes = $this->changed_fields;
+        if (empty($changes)) {
             return 'No specific changes recorded';
         }
 
-        $changes = [];
-        foreach ($this->changed_fields as $field => $values) {
+        $formatted = [];
+        foreach ($changes as $field => $values) {
             $oldValue = $values['old'] ?? 'N/A';
             $newValue = $values['new'] ?? 'N/A';
+
+            // Handle array values by converting them to JSON or readable format
+            if (is_array($oldValue)) {
+                $oldValue = json_encode($oldValue);
+            }
+            if (is_array($newValue)) {
+                $newValue = json_encode($newValue);
+            }
+
             $fieldName = str_replace('_', ' ', $field);
-            $changes[] = ucfirst($fieldName).": '{$oldValue}' → '{$newValue}'";
+            $formatted[] = ucfirst($fieldName).": '{$oldValue}' → '{$newValue}'";
         }
 
-        return implode(', ', $changes);
+        return implode(', ', $formatted);
     }
 
-    public function getFormattedChangesHtmlAttribute(): string
+    public function getEventColorAttribute(): string
     {
-        if (empty($this->changed_fields)) {
-            return '<span class="text-gray-500 text-sm">No specific changes recorded</span>';
-        }
-
-        $changes = [];
-        foreach ($this->changed_fields as $field => $values) {
-            $oldValue = $values['old'] ?? 'N/A';
-            $newValue = $values['new'] ?? 'N/A';
-            $fieldName = str_replace('_', ' ', $field);
-
-            // Ensure values are strings for htmlspecialchars
-            $oldValueStr = is_array($oldValue) ? json_encode($oldValue) : (string) $oldValue;
-            $newValueStr = is_array($newValue) ? json_encode($newValue) : (string) $newValue;
-
-            $changes[] = '<div class="mb-2 last:mb-0">'.
-                '<span class="text-xs font-medium text-gray-600 uppercase tracking-wide">'.ucfirst($fieldName).'</span>'.
-                '<div class="flex items-center space-x-2 mt-1">'.
-                '<span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs border">'.htmlspecialchars($oldValueStr).'</span>'.
-                '<i class="fas fa-arrow-right text-gray-400 text-xs"></i>'.
-                '<span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs border">'.htmlspecialchars($newValueStr).'</span>'.
-                '</div>'.
-                '</div>';
-        }
-
-        return implode('', $changes);
-    }
-
-    public function getActionColorAttribute(): string
-    {
-        return match ($this->action) {
+        return match ($this->event) {
             'created' => 'green',
             'updated' => 'blue',
             'deleted' => 'red',
@@ -90,9 +100,9 @@ class AuditTrail extends Model
         };
     }
 
-    public function getActionIconAttribute(): string
+    public function getEventIconAttribute(): string
     {
-        return match ($this->action) {
+        return match ($this->event) {
             'created' => 'plus',
             'updated' => 'pencil',
             'deleted' => 'trash',

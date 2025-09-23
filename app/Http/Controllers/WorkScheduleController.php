@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreWorkScheduleRequest;
 use App\Http\Requests\UpdateWorkScheduleRequest;
 use App\Models\WorkSchedule;
+use Inertia\Inertia;
 
 class WorkScheduleController extends Controller
 {
@@ -13,12 +14,14 @@ class WorkScheduleController extends Controller
      */
     public function index()
     {
-        $workSchedules = WorkSchedule::select(['id', 'name', 'code', 'type', 'hours_per_day', 'is_active'])
+        $workSchedules = WorkSchedule::select(['id', 'name', 'code', 'type', 'hours_per_day', 'hours_per_week', 'days_per_week', 'break_duration_minutes', 'is_active', 'created_at'])
             ->where('company_id', 1)
             ->latest()
-            ->get();
+            ->paginate(15);
 
-        return view('work-schedules.index', compact('workSchedules'));
+        return Inertia::render('Organization/WorkScheduleIndex', [
+            'workSchedules' => $workSchedules,
+        ]);
     }
 
     /**
@@ -139,6 +142,14 @@ class WorkScheduleController extends Controller
 
         $workSchedule->update($validated);
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Work Schedule updated successfully.',
+                'workSchedule' => $workSchedule->fresh()
+            ]);
+        }
+
         return redirect()->route('work-schedules.index')
             ->with('success', 'Work Schedule updated successfully.');
     }
@@ -150,11 +161,24 @@ class WorkScheduleController extends Controller
     {
         // Check if work schedule has employees
         if ($workSchedule->employees()->count() > 0) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete work schedule that has employees.'
+                ], 422);
+            }
             return redirect()->route('work-schedules.index')
                 ->with('error', 'Cannot delete work schedule that has employees.');
         }
 
         $workSchedule->delete();
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Work Schedule deleted successfully.'
+            ]);
+        }
 
         return redirect()->route('work-schedules.index')
             ->with('success', 'Work Schedule deleted successfully.');

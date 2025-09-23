@@ -5,14 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\EmploymentStatus;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class EmploymentStatusController extends Controller
 {
     public function index()
     {
-        $employmentStatuses = EmploymentStatus::ordered()->paginate(15);
+        $employmentStatuses = EmploymentStatus::select(['id', 'code', 'name', 'description', 'color', 'is_active', 'requires_probation', 'eligible_for_benefits', 'sort_order', 'created_at'])
+            ->ordered()
+            ->paginate(15);
 
-        return view('employment-statuses.index', compact('employmentStatuses'));
+        return Inertia::render('Organization/EmploymentTypeIndex', [
+            'employmentTypes' => $employmentStatuses,
+        ]);
     }
 
     public function create()
@@ -130,24 +135,45 @@ class EmploymentStatusController extends Controller
 
         $employmentStatus->update($validated);
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Employment Type updated successfully.',
+                'employmentType' => $employmentStatus->fresh()
+            ]);
+        }
+
         return redirect()
-            ->route('employment-statuses.show', $employmentStatus)
-            ->with('success', 'Employment status updated successfully.');
+            ->route('employment-statuses.index')
+            ->with('success', 'Employment Type updated successfully.');
     }
 
     public function destroy(EmploymentStatus $employmentStatus)
     {
         // Check if any employees are using this status
         if ($employmentStatus->employees()->count() > 0) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete Employment Type that is assigned to employees.'
+                ], 422);
+            }
             return redirect()
                 ->route('employment-statuses.index')
-                ->with('error', 'Cannot delete employment status that is assigned to employees.');
+                ->with('error', 'Cannot delete Employment Type that is assigned to employees.');
         }
 
         $employmentStatus->delete();
 
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Employment Type deleted successfully.'
+            ]);
+        }
+
         return redirect()
             ->route('employment-statuses.index')
-            ->with('success', 'Employment status deleted successfully.');
+            ->with('success', 'Employment Type deleted successfully.');
     }
 }

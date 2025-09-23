@@ -100,6 +100,13 @@ Route::middleware('auth')->group(function () {
     // Events Management
     Route::resource('company-events', CompanyEventController::class)->names('company-events');
 
+    // Audit Trail Management
+    Route::get('/audit-trails', [AuditTrailController::class, 'index'])->name('audit-trails.index');
+    Route::get('/audit-trails/{modelType}/{modelId}', [AuditTrailController::class, 'show'])->name('audit-trails.show');
+
+    // Employee Audit Trail (dedicated page)
+    Route::get('/employees/{employee}/audit-trail', [AuditTrailController::class, 'employeeAuditTrail'])->name('employees.audit-trail');
+
     // Employee Management
     Route::resource('employees', EmployeeController::class);
 

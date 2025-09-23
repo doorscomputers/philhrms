@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreDepartmentRequest;
 use App\Http\Requests\UpdateDepartmentRequest;
 use App\Models\Department;
+use Inertia\Inertia;
 
 class DepartmentController extends Controller
 {
@@ -19,7 +20,9 @@ class DepartmentController extends Controller
             ->latest()
             ->paginate(15);
 
-        return view('departments.index', compact('departments'));
+        return Inertia::render('Organization/DepartmentIndex', [
+            'departments' => $departments,
+        ]);
     }
 
     /**
@@ -30,7 +33,10 @@ class DepartmentController extends Controller
         $companies = \App\Models\Company::where('status', 'Active')->get();
         $parentDepartments = Department::where('company_id', 1)->where('is_active', true)->get();
 
-        return view('departments.create', compact('companies', 'parentDepartments'));
+        return Inertia::render('Organization/DepartmentCreate', [
+            'companies' => $companies,
+            'parentDepartments' => $parentDepartments,
+        ]);
     }
 
     /**
@@ -60,8 +66,7 @@ class DepartmentController extends Controller
                 ]);
             }
 
-            return redirect()->route('departments.index')
-                ->with('success', 'Department created successfully.');
+            return redirect()->route('departments.index');
         } catch (\Exception $e) {
             \Log::error('Department creation failed: ' . $e->getMessage());
 
@@ -86,7 +91,9 @@ class DepartmentController extends Controller
     {
         $department->load(['company', 'parent', 'children', 'employees']);
 
-        return view('departments.show', compact('department'));
+        return Inertia::render('Organization/DepartmentShow', [
+            'department' => $department,
+        ]);
     }
 
     /**
@@ -100,7 +107,11 @@ class DepartmentController extends Controller
             ->where('id', '!=', $department->id)
             ->get();
 
-        return view('departments.edit', compact('department', 'companies', 'parentDepartments'));
+        return Inertia::render('Organization/DepartmentEdit', [
+            'department' => $department,
+            'companies' => $companies,
+            'parentDepartments' => $parentDepartments,
+        ]);
     }
 
     /**
@@ -112,8 +123,7 @@ class DepartmentController extends Controller
 
         $department->update($validated);
 
-        return redirect()->route('departments.index')
-            ->with('success', 'Department updated successfully.');
+        return redirect()->route('departments.index');
     }
 
     /**

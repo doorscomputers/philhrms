@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
+use App\Models\AuditTrail;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -81,30 +82,38 @@ class EmployeeViewController extends Controller
      */
     public function timeline(Employee $employee)
     {
-        // Get audit trails for this employee
-        $auditTrails = $employee->auditTrails()
+        // Get audit trails for this employee using direct query
+        $auditTrails = AuditTrail::where('model_type', Employee::class)
+            ->where('model_id', $employee->id)
+            ->with(['user:id,first_name,last_name,preferred_name'])
             ->orderBy('created_at', 'desc')
             ->get();
 
         $timeline = collect();
 
         // Add audit trail entries
-        foreach ($auditTrails as $audit) {
+        if ($auditTrails && $auditTrails->count() > 0) {
+            foreach ($auditTrails as $audit) {
             $timeline->push([
                 'type' => $audit->action,
                 'date' => $audit->created_at,
-                'description' => $audit->description,
-                'user' => $audit->user_name,
-                'changes' => $audit->formatted_changes_html,
+                'description' => $audit->description ?? 'Record modified',
+                'user' => $audit->user_name ?? ($audit->user ? $audit->user->name : 'System'),
+                'changes' => $audit->formatted_changes ?? 'No specific changes recorded',
                 'ip_address' => $audit->ip_address,
                 'user_agent' => $audit->user_agent,
-                'action_color' => $audit->action_color,
-                'action_icon' => $audit->action_icon,
+                'action_color' => $this->getActionColor($audit->action),
+                'action_icon' => $this->getActionIcon($audit->action),
             ]);
+            }
         }
 
+        // Load employee documents with relationships
+        $employee->load(['documents.uploader:id,first_name,last_name', 'documents.verifier:id,first_name,last_name']);
+
         // Add document uploads to timeline
-        foreach ($employee->documents as $document) {
+        if ($employee->documents && $employee->documents->count() > 0) {
+            foreach ($employee->documents as $document) {
             $timeline->push([
                 'type' => 'document_uploaded',
                 'date' => $document->created_at,
@@ -130,6 +139,7 @@ class EmployeeViewController extends Controller
                     'action_color' => 'green',
                     'action_icon' => 'check-circle',
                 ]);
+            }
             }
         }
 
@@ -179,5 +189,31 @@ class EmployeeViewController extends Controller
         return response()->json([
             'timeline' => $timeline->sortByDesc('date')->values()
         ]);
+    }
+
+    /**
+     * Get action color for timeline entries
+     */
+    private function getActionColor(string $action): string
+    {
+        return match ($action) {
+            'created' => 'green',
+            'updated' => 'blue',
+            'deleted' => 'red',
+            default => 'gray',
+        };
+    }
+
+    /**
+     * Get action icon for timeline entries
+     */
+    private function getActionIcon(string $action): string
+    {
+        return match ($action) {
+            'created' => 'plus',
+            'updated' => 'pencil',
+            'deleted' => 'trash',
+            default => 'info',
+        };
     }
 }

@@ -323,15 +323,15 @@
               <i class="fas fa-chevron-down absolute right-4 top-11 text-gray-400 pointer-events-none"></i>
             </div>
 
-            <!-- Status Filter -->
+            <!-- Employment Status Filter -->
             <div class="relative group">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Employment Status</label>
               <select
                 v-model="filters.status"
                 class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:bg-white appearance-none cursor-pointer"
                 @change="filterEmployees"
               >
-                <option value="">All Status</option>
+                <option value="">All Employment Statuses</option>
                 <option v-for="status in props.employmentStatuses" :key="status.id" :value="status.name">
                   {{ status.name }}
                 </option>
@@ -390,7 +390,7 @@
                 <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Employee</th>
                 <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Position</th>
                 <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Department</th>
-                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Employment Status</th>
                 <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Hire Date</th>
                 <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
               </tr>
@@ -728,7 +728,7 @@ const deleteEmployee = async (employee) => {
       },
       onError: (errors) => {
         console.error('Error deleting employee:', errors)
-        alert('Failed to delete employee. Please try again.')
+        window.$toast?.error('Delete Failed', 'Failed to delete employee. Please try again.')
       }
     })
   }
@@ -803,12 +803,12 @@ const getYearsOfService = (hireDate) => {
 
 const exportEmployees = () => {
   // TODO: Implement CSV export functionality
-  alert('Export functionality will be implemented soon!')
+  window.$toast?.info('Coming Soon', 'Export functionality will be implemented soon!')
 }
 
 const generateReport = () => {
   // TODO: Implement comprehensive HR report generation
-  alert('Report generation functionality will be implemented soon!')
+  window.$toast?.info('Coming Soon', 'Report generation functionality will be implemented soon!')
 }
 
 const navigateToDashboard = () => {
