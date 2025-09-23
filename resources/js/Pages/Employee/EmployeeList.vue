@@ -709,7 +709,7 @@ const filteredEmployees = computed(() => {
 
 const activeEmployees = computed(() => {
   if (!props.employees?.data) return 0
-  return props.employees.data.filter(emp => !emp.employment_status?.name || emp.employment_status?.name === 'Active Employee').length
+  return props.employees.data.filter(emp => emp.is_active === true).length
 })
 const deleteEmployee = async (employee) => {
   console.log('Employee object:', employee)
